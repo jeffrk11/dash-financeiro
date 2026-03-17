@@ -52,17 +52,17 @@ jobs:
             echo "❌ ERROR: Config file not found: $CONFIG_FILE"
             exit 1
           fi
-
+          
           # Export every GitHub Secret as an environment variable.
-          # Reads key and value separately via jq to safely handle values
-          # that contain =, spaces, quotes, or newlines (e.g. URLs, PEM keys).
-          while IFS= read -r key && IFS= read -r value; do
-            export "$key=$value"
-          done < <(echo "$ALL_SECRETS" | jq -r 'to_entries[] | (.key, .value)')
-
+          # Values are base64-encoded by jq so multiline secrets (e.g. PEM keys)
+          # are collapsed to a single line, then decoded on export.
+          while IFS= read -r key && IFS= read -r b64value; do
+            export "$key=$(echo "$b64value" | base64 -d)"
+          done < <(echo "$ALL_SECRETS" | jq -r 'to_entries[] | (.key, (.value | @base64))')
+          
           # Replace all ${VARNAME} placeholders in the config file in-place
           envsubst < "$CONFIG_FILE" > "$CONFIG_FILE.tmp" && mv "$CONFIG_FILE.tmp" "$CONFIG_FILE"
-
+          
           echo "✅ Secrets injected into $CONFIG_FILE"
 
       # ── 3. Normalise IMAGE_NAME to lowercase ───────────────────────────────
