@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Financeira</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            color: #e0e0ff;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        /* Cards Section - Summary */
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid #2d2d44;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
+            border-color: #4a4a6a;
+        }
+
+        .card-title {
+            font-size: 0.9em;
+            color: #a0a0c0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .card-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #e0e0ff;
+            margin-bottom: 10px;
+        }
+
+        .card-subtitle {
+            font-size: 0.85em;
+            color: #7a7a99;
+        }
+
+        /* Spent Card */
+        .card-spent {
+            border-top: 4px solid #ff6b6b;
+        }
+
+        .card-spent .card-value {
+            color: #ff6b6b;
+        }
+
+        /* Received Card */
+        .card-received {
+            border-top: 4px solid #51cf66;
+        }
+
+        .card-received .card-value {
+            color: #51cf66;
+        }
+
+        /* Received Card future */
+        .card-received-future {
+            border-top: 4px solid #04bea1;
+        }
+
+        .card-received-future .card-value {
+            color: #04bea1;
+        }
+
+        /* Future Card */
+        .card-future {
+            border-top: 4px solid #ffa94d;
+        }
+
+        .card-future .card-value {
+            color: #ffa94d;
+        }
+
+        /* Balance Card */
+        .card-balance {
+            border-top: 4px solid #4c6ef5;
+            grid-column: span 1;
+        }
+
+        .card-balance.positive .card-value {
+            color: #51cf66;
+        }
+
+        .card-balance.negative .card-value {
+            color: #ff6b6b;
+        }
+
+        /* Budgets Section */
+        .budgets-section {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid #2d2d44;
+        }
+
+        .budgets-section h2 {
+            font-size: 1.8em;
+            color: #e0e0ff;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .budget-item {
+            margin-bottom: 35px;
+        }
+
+        .budget-name {
+            font-size: 1.1em;
+            color: #e0e0ff;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .budget-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #a0a0c0;
+        }
+
+        .budget-info-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .budget-info-label {
+            color: #7a7a99;
+            font-weight: 500;
+        }
+
+        .budget-bar-container {
+            width: 100%;
+            height: 30px;
+            background: #2d2d44;
+            border-radius: 15px;
+            overflow: hidden;
+            display: flex;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .budget-bar-spent {
+            background: linear-gradient(90deg, #ff6b6b, #ff8787);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8em;
+            font-weight: bold;
+            transition: flex 0.3s ease;
+            min-width: auto;
+        }
+
+        .budget-bar-future {
+            background: linear-gradient(90deg, #ffa94d, #ffd43b);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8em;
+            font-weight: bold;
+            transition: flex 0.3s ease;
+            min-width: auto;
+        }
+
+        .budget-bar-available {
+            background: linear-gradient(90deg, #51cf66, #69db7c);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.8em;
+            font-weight: bold;
+            transition: flex 0.3s ease;
+            min-width: auto;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+            color: #a0a0c0;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .legend-spent {
+            background: linear-gradient(90deg, #ff6b6b, #ff8787);
+        }
+
+        .legend-future {
+            background: linear-gradient(90deg, #ffa94d, #ffd43b);
+        }
+
+        .legend-available {
+            background: linear-gradient(90deg, #51cf66, #69db7c);
+        }
+
+        /* Sankey Section */
+        .sankey-section {
+            background: #1a1a2e;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            margin-top: 40px;
+            border: 1px solid #2d2d44;
+        }
+
+        .sankey-section h2 {
+            font-size: 1.8em;
+            color: #e0e0ff;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Month Navigation */
+        .month-navigation {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .month-nav-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid white;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .month-nav-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.05);
+        }
+
+        .month-nav-button:active {
+            transform: scale(0.98);
+        }
+
+        .month-display {
+            color: white;
+            font-size: 1.2em;
+            font-weight: 600;
+            min-width: 150px;
+            text-align: center;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .summary-cards {
+                grid-template-columns: 1fr;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+            }
+
+            .month-navigation {
+                gap: 10px;
+            }
+
+            .month-nav-button {
+                padding: 8px 15px;
+                font-size: 0.9em;
+            }
+
+            .month-display {
+                font-size: 1em;
+                min-width: 120px;
+            }
+
+            .budgets-section {
+                padding: 20px;
+            }
+
+            .budget-bar-container {
+                height: 25px;
+            }
+
+            .budget-bar-spent,
+            .budget-bar-future,
+            .budget-bar-available {
+                font-size: 0.7em;
+            }
+        }
+    </style>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>💰 Dashboard Financeira</h1>
+            <p>Visão geral de seu patrimônio financeiro</p>
+
+            <!-- Month Navigation -->
+            <div class="month-navigation">
+                <button class="month-nav-button" onclick="previousMonth()">← Anterior</button>
+                <div class="month-display" id="currentMonth">Março 2026</div>
+                <button class="month-nav-button" onclick="nextMonth()">Próximo →</button>
+            </div>
+        </header>
+
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <!-- Gasto Agora -->
+            <div class="card card-spent">
+                <div class="card-title">💸 Gasto Até Agora</div>
+                <div class="card-value">R$ {data.summary.spentNowFormatted}</div>
+                <div class="card-subtitle">Transações passadas</div>
+            </div>
+            <!-- Gasto Futuro -->
+            <div class="card card-future">
+                <div class="card-title">🚀 Será Gasto</div>
+                <div class="card-value">R$ {data.summary.spentFutureFormatted}</div>
+                <div class="card-subtitle">Transações futuras</div>
+            </div>
+            <!-- Recebido Agora -->
+            <div class="card card-received">
+                <div class="card-title">📥 Recebido</div>
+                <div class="card-value">R$ {data.summary.receivedNowFormatted}</div>
+                <div class="card-subtitle">Transações passadas</div>
+            </div>
+
+            <!-- Recebido Futuro -->
+            <div class="card card-received-future">
+                <div class="card-title">📈 Será Recebido</div>
+                <div class="card-value">R$ {data.summary.receivedFutureFormatted}</div>
+                <div class="card-subtitle">Transações futuras</div>
+            </div>
+
+            <!-- Saldo -->
+            {#if data.summary.isBalancePositive()}
+                <div class="card card-balance positive">
+                    <div class="card-title">⚖️ Saldo Projetado</div>
+                    <div class="card-value">+R$ {data.summary.projectedBalanceFormatted}</div>
+                    <div class="card-subtitle">Superávit</div>
+                </div>
+            {#else}
+                <div class="card card-balance negative">
+                    <div class="card-title">⚖️ Saldo Projetado</div>
+                    <div class="card-value">-R$ {data.summary.projectedBalanceFormatted}</div>
+                    <div class="card-subtitle">Déficit</div>
+                </div>
+            {/if}
+        </div>
+
+        <!-- Budgets Section -->
+        <div class="budgets-section">
+            <h2>📊 Orçamentos</h2>
+
+            {#for budget in data.budgets}
+                <div class="budget-item">
+                    <div class="budget-name">{budget.name}</div>
+
+                    <div class="budget-info">
+                        <div class="budget-info-item">
+                            <span class="budget-info-label">Gasto:</span>
+                            <span>R$ {budget.spentFormatted}</span>
+                        </div>
+                        <div class="budget-info-item">
+                            <span class="budget-info-label">Será Gasto:</span>
+                            <span>R$ {budget.futureFormatted}</span>
+                        </div>
+                        <div class="budget-info-item">
+                            <span class="budget-info-label">Pode Gastar:</span>
+                            <span>R$ {budget.availableFormatted}</span>
+                        </div>
+                        <div class="budget-info-item">
+                            <span class="budget-info-label">Total:</span>
+                            <span>R$ {budget.totalFormatted}</span>
+                        </div>
+                    </div>
+
+                    <div class="budget-bar-container">
+                        {#if budget.getSpentPercentage() > 0}
+                            <div class="budget-bar-spent" style="flex-basis: {budget.getSpentPercentage()}%">
+                                {#if budget.getSpentPercentage() > 8}{budget.getSpentPercentage()}%{/if}
+                            </div>
+                        {/if}
+                        {#if budget.getFuturePercentage() > 0}
+                            <div class="budget-bar-future" style="flex-basis: {budget.getFuturePercentage()}%">
+                                {#if budget.getFuturePercentage() > 8}{budget.getFuturePercentage()}%{/if}
+                            </div>
+                        {/if}
+                        {#if budget.getAvailablePercentage() > 0}
+                            <div class="budget-bar-available" style="flex-basis: {budget.getAvailablePercentage()}%">
+                                {#if budget.getAvailablePercentage() > 8}{budget.getAvailablePercentage()}%{/if}
+                            </div>
+                        {/if}
+                    </div>
+                </div>
+            {/for}
+
+            <!-- Legend -->
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color legend-spent"></div>
+                    <span>Gasto Atual (Vermelho)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-future"></div>
+                    <span>Será Gasto (Laranja)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color legend-available"></div>
+                    <span>Pode Gastar (Verde)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sankey Diagram -->
+        <div class="sankey-section">
+            <h2>🌊 Despesas por Categoria</h2>
+            <div id="sankey-chart" style="width: 100%; height: 500px;"></div>
+        </div>
+    </div>
+
+    <script>
+        // Gerencia o mês atual (armazenado como YYYY-MM)
+        let currentMonth = localStorage.getItem('selectedMonth');
+        if (!currentMonth) {
+            // Define o mês atual como padrão
+            const today = new Date();
+            currentMonth = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0');
+            localStorage.setItem('selectedMonth', currentMonth);
+        }
+
+        // Meses em português
+        const monthNames = [
+            'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ];
+
+        function updateMonthDisplay() {
+            const [year, month] = currentMonth.split('-');
+            const monthName = monthNames[parseInt(month) - 1];
+            document.getElementById('currentMonth').textContent = monthName + ' ' + year;
+        }
+
+        function previousMonth() {
+            const [year, month] = currentMonth.split('-');
+            let newMonth = parseInt(month) - 1;
+            let newYear = parseInt(year);
+
+            if (newMonth < 1) {
+                newMonth = 12;
+                newYear--;
+            }
+
+            currentMonth = newYear + '-' + String(newMonth).padStart(2, '0');
+            localStorage.setItem('selectedMonth', currentMonth);
+            loadDashboard();
+        }
+
+        function nextMonth() {
+            const [year, month] = currentMonth.split('-');
+            let newMonth = parseInt(month) + 1;
+            let newYear = parseInt(year);
+
+            if (newMonth > 12) {
+                newMonth = 1;
+                newYear++;
+            }
+
+            currentMonth = newYear + '-' + String(newMonth).padStart(2, '0');
+            localStorage.setItem('selectedMonth', currentMonth);
+            loadDashboard();
+        }
+
+        function loadDashboard() {
+            // Redireciona para o dashboard com o mês selecionado
+            window.location.href = '/dashboard?month=' + currentMonth;
+        }
+
+        // Inicializa o display do mês ao carregar a página
+        updateMonthDisplay();
+
+        // Verifica se tem um parâmetro de mês na URL e atualiza
+        const params = new URLSearchParams(window.location.search);
+        const urlMonth = params.get('month');
+        if (urlMonth) {
+            currentMonth = urlMonth;
+            localStorage.setItem('selectedMonth', currentMonth);
+            updateMonthDisplay();
+        }
+
+        // Renderizar o gráfico Sankey
+        function renderSankey() {
+            try {
+                // Dados do Sankey vem do servidor em formato JSON via data attributes
+                const sankeyData = {
+                    totalIncome: parseFloat('{data.sankey.totalIncomeFormatted}'),
+                    incomeCategories: [
+                        {#for cat in data.sankey.incomeCategories}
+                        {
+                            name: '{cat.name}',
+                            amount: {cat.amount}
+                        }
+                        {#if cat_count < data.sankey.incomeCategories.size},{/if}
+                        {/for}
+                    ],
+                    expenseCategories: [
+                        {#for cat in data.sankey.expenseCategories}
+                        {
+                            name: '{cat.name}',
+                            amount: {cat.amount}
+                        }
+                        {#if cat_count < data.sankey.expenseCategories.size},{/if}
+                        {/for}
+                    ]
+                };
+
+                if (!sankeyData || ((!sankeyData.incomeCategories || sankeyData.incomeCategories.length === 0) &&
+                                     (!sankeyData.expenseCategories || sankeyData.expenseCategories.length === 0))) {
+                    document.getElementById('sankey-chart').innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">Sem dados de transações para este período</p>';
+                    return;
+                }
+
+                // Constrói o Sankey: Entradas → Renda Total → Despesas
+                const source = [];
+                const target = [];
+                const value = [];
+                const labels = [];
+                const colors = [];
+
+                let nodeIndex = 0;
+
+                // Node 0: "Renda Total" (sempre no meio)
+                labels.push('Renda Total');
+                colors.push('#51cf66'); // Verde
+                const totalNode = 0;
+                nodeIndex = 1;
+
+                // Adiciona categorias de ENTRADA (esquerda)
+                const incomeStartNode = nodeIndex;
+                for (const category of sankeyData.incomeCategories) {
+                    if (category.name && category.amount > 0) {
+                        labels.push('📥 ' + category.name);
+                        colors.push('#748ffc'); // Azul
+                        // Ligação: Categoria Entrada → Renda Total
+                        source.push(nodeIndex);
+                        target.push(totalNode);
+                        value.push(parseFloat(category.amount));
+                        nodeIndex++;
+                    }
+                }
+
+                // Adiciona categorias de DESPESA (direita)
+                const expenseStartNode = nodeIndex;
+                for (const category of sankeyData.expenseCategories) {
+                    if (category.name && category.amount > 0) {
+                        labels.push('💸 ' + category.name);
+                        colors.push('#ff6b6b'); // Vermelho
+                        // Ligação: Renda Total → Categoria Despesa
+                        source.push(totalNode);
+                        target.push(nodeIndex);
+                        value.push(parseFloat(category.amount));
+                        nodeIndex++;
+                    }
+                }
+
+                // Se nenhuma categoria foi adicionada, mostra mensagem
+                if (source.length === 0) {
+                    document.getElementById('sankey-chart').innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">Sem dados de transações para este período</p>';
+                    return;
+                }
+
+                const data = [{
+                    type: "sankey",
+                    orientation: "h",
+                    valueformat: ".0f",
+                    node: {
+                        pad: 15,
+                        thickness: 20,
+                        line: {
+                            color: 'black',
+                            width: 0.5
+                        },
+                        label: labels,
+                        color: colors
+                    },
+                    link: {
+                        source: source,
+                        target: target,
+                        value: value,
+                        color: 'rgba(89,88,88,0.4)'
+                    }
+                }];
+
+                const layout = {
+                    font: { size: 16, color: '#f8f8f8' },
+                    height: 600,
+                    margin: { l: 100, r: 100, t: 50, b: 50 },
+                    paper_bgcolor: '#1a1a2e',
+                    plot_bgcolor: '#1a1a2e'
+                };
+
+                Plotly.newPlot('sankey-chart', data, layout, { responsive: true }).then(() => {
+                    document.querySelectorAll('#sankey-chart .sankey text').forEach(el => {
+                        el.style.fill = '#ffffff';
+                        el.style.stroke = '#f8f7f7';
+                        el.style.strokeWidth = '1.5px';
+                    });
+                });
+            } catch (error) {
+                console.error('Erro ao renderizar Sankey:', error);
+                document.getElementById('sankey-chart').innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">Erro ao carregar o gráfico</p>';
+            }
+        }
+
+        // Chama função de renderizar Sankey quando a página carrega
+        setTimeout(renderSankey, 100);
+    </script>
+</body>
+</html>
