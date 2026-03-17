@@ -1,9 +1,6 @@
 name: Build and Deploy via Tailscale
 
 on:
-  push:
-    branches:
-      - master
   workflow_dispatch:
     inputs:
       environment:
@@ -15,7 +12,7 @@ on:
           - PROD
       config_file:
         description: 'Path to the config file to inject secrets into'
-        default: 'src/main/resources/config.yaml'
+        default: 'src/main/resources/application.properties'
 
 jobs:
   build-and-deploy:
@@ -31,7 +28,7 @@ jobs:
 
       # ── 1. Checkout ────────────────────────────────────────────────────────
       - name: Check out the repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # ── 2. Inject secrets into config file ─────────────────────────────────
       #
