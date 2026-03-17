@@ -101,6 +101,7 @@ jobs:
 
       - name: Copy repository to server
         run: |
+          ssh -o StrictHostKeyChecking=no $REMOTE_HOST "mkdir -p $REMOTE_APP_DIR"
           scp -o StrictHostKeyChecking=no -r . \
             $REMOTE_HOST:$REMOTE_APP_DIR
 
