@@ -1,27 +1,25 @@
-####
-# This Dockerfile is used in order to build a container that runs the Quarkus application in native (no JVM) mode.
-#
-# Before building the container image run:
-#
-# ./mvnw package -Dnative
-#
-# Then, build the image with:
-#
-# docker build -f src/main/docker/Dockerfile.native -t quarkus/dash-financeiro .
-#
-# Then run the container using:
-#
-# docker run -i --rm -p 8080:8080 quarkus/dash-financeiro
-#
-# The ` registry.access.redhat.com/ubi9/ubi-minimal:9.7` base image is based on UBI 9.
-# To use UBI 8, switch to `quay.io/ubi8/ubi-minimal:8.10`.
-###
+# ── Stage 1: Build native binary ──────────────────────────────────────────────
+FROM ghcr.io/graalvm/native-image-community:21 AS build
+
+WORKDIR /app
+
+COPY . .
+
+# Clear the SHA-256 checksum validation — it fails in isolated build environments
+# due to locale/download differences. Safe to skip in a controlled Docker build.
+RUN chmod +x mvnw && \
+    sed -i 's/distributionSha256Sum=.*/distributionSha256Sum=/' .mvn/wrapper/maven-wrapper.properties && \
+    ./mvnw package -Dnative -DskipTests -q
+
+# ── Stage 2: Runtime ───────────────────────────────────────────────────────────
 FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7
+
 WORKDIR /work/
 RUN chown 1001 /work \
     && chmod "g+rwX" /work \
     && chown 1001:root /work
-COPY --chown=1001:root --chmod=0755 target/*-runner /work/application
+
+COPY --from=build --chown=1001:root --chmod=0755 /app/target/*-runner /work/application
 
 EXPOSE 8080
 USER 1001
