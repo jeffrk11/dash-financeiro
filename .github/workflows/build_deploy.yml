@@ -117,7 +117,7 @@ jobs:
             set -e
             cd $REMOTE_APP_DIR
             echo "🐳 Building image: $IMAGE_NAME (native compile inside Docker, grab a coffee...)"
-            docker build -f Dockerfile.native -t $IMAGE_NAME .
+            docker build -f Dockerfile -t $IMAGE_NAME .
             echo "🚀 Starting container via docker compose..."
             docker-compose up -d
             echo "✅ Deployment complete!"
