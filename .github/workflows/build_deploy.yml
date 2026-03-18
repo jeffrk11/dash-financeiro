@@ -114,6 +114,6 @@ jobs:
             echo "🐳 Building image: $IMAGE_NAME"
             docker build -t $IMAGE_NAME .
             echo "🚀 Starting container: $IMAGE_NAME"
-            docker run -d -it --name $IMAGE_NAME $IMAGE_NAME
+            docker run -d -it --name $IMAGE_NAME -p 8382:8080 $IMAGE_NAME
             echo "✅ Deployment complete!"
           EOF
