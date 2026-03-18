@@ -1,28 +1,23 @@
-# ── Stage 1: Build native binary ──────────────────────────────────────────────
-FROM ghcr.io/graalvm/native-image-community:21 AS build
+# ── Stage 1: Build ────────────────────────────────────────────────────────────
+FROM eclipse-temurin:21-jdk AS build
 
 WORKDIR /app
 
 COPY . .
-
-# Clear the SHA-256 checksum validation — it fails in isolated build environments
-# due to locale/download differences. Safe to skip in a controlled Docker build.
 RUN chmod +x mvnw && \
     sed -i 's/distributionSha256Sum=.*/distributionSha256Sum=/' .mvn/wrapper/maven-wrapper.properties && \
-    ./mvnw package -Dnative -DskipTests -q
+    ./mvnw package -DskipTests -q
 
-# ── Stage 2: Runtime ───────────────────────────────────────────────────────────
-FROM registry.access.redhat.com/ubi9/ubi-minimal:9.7
+# ── Stage 2: Runtime ──────────────────────────────────────────────────────────
+FROM eclipse-temurin:21-jre
 
 WORKDIR /work/
-RUN chown 1001 /work \
-    && chmod "g+rwX" /work \
-    && chown 1001:root /work
+COPY --from=build /app/target/quarkus-app/lib/ /work/lib/
+COPY --from=build /app/target/quarkus-app/app/ /work/app/
+COPY --from=build /app/target/quarkus-app/quarkus/ /work/quarkus/
+COPY --from=build /app/target/quarkus-app/quarkus-run.jar /work/quarkus-run.jar
 
-COPY --from=build /app/target/*-runner /work/application
-RUN chown 1001:root /work/application && chmod 0755 /work/application
-
-EXPOSE 8080
+EXPOSE 8382
 USER 1001
 
-ENTRYPOINT ["./application", "-Dquarkus.http.host=0.0.0.0"]
+ENTRYPOINT ["java", "-jar", "/work/quarkus-run.jar"]
