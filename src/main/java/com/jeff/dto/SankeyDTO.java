@@ -1,8 +1,11 @@
 package com.jeff.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.math.BigDecimal;
 import java.util.List;
 
+@RegisterForReflection
 public class SankeyDTO {
     public BigDecimal totalIncome;
     public List<CategoryDTO> incomeCategories;  // Categorias de entrada (esquerda)

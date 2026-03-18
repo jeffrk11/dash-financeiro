@@ -1,10 +1,13 @@
 package com.jeff.dto;
 
+import io.quarkus.runtime.annotations.RegisterForReflection;
+
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.Locale;
 
+@RegisterForReflection
 public class SummaryDTO {
     public BigDecimal spentNow;
     public BigDecimal receivedNow;
