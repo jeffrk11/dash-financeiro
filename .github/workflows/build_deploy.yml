@@ -106,14 +106,19 @@ jobs:
             $REMOTE_HOST:$REMOTE_APP_DIR
 
       # ── 8. Build Docker image and run container ────────────────────────────
+      #
+      # Multi-stage build: Docker pulls GraalVM CE 21, compiles the native
+      # binary inside the build stage, then packages it into a UBI minimal
+      # runtime image. No GraalVM or Maven needed on the server.
+      #
       - name: Build image and deploy container
         run: |
           ssh -o StrictHostKeyChecking=no $REMOTE_HOST << EOF
             set -e
             cd $REMOTE_APP_DIR
-            echo "🐳 Building image: $IMAGE_NAME"
-            docker build -t $IMAGE_NAME .
-            echo "🚀 Starting container: $IMAGE_NAME"
-            docker run -d -it --name $IMAGE_NAME -p 8382:8080 $IMAGE_NAME
+            echo "🐳 Building image: $IMAGE_NAME (native compile inside Docker, grab a coffee...)"
+            docker build -f Dockerfile.native -t $IMAGE_NAME .
+            echo "🚀 Starting container via docker compose..."
+            docker-compose up -d
             echo "✅ Deployment complete!"
           EOF

@@ -1,0 +1,13 @@
+services:
+  dash-financeiro:
+    image: prod-dash-financeiro
+    container_name: prod-dash-financeiro
+    ports:
+      - "8382:8080"
+    networks:
+      - firefly_firefly_iii
+    restart: unless-stopped
+
+networks:
+  firefly_firefly_iii:
+    external: true
