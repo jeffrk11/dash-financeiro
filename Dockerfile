@@ -19,7 +19,8 @@ RUN chown 1001 /work \
     && chmod "g+rwX" /work \
     && chown 1001:root /work
 
-COPY --from=build --chown=1001:root --chmod=0755 /app/target/*-runner /work/application
+COPY --from=build /app/target/*-runner /work/application
+RUN chown 1001:root /work/application && chmod 0755 /work/application
 
 EXPOSE 8080
 USER 1001
