@@ -1,5 +1,6 @@
 package com.jeff.client;
 
+import com.aayushatharva.brotli4j.common.annotations.Local;
 import com.fasterxml.jackson.core.type.TypeReference;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.ws.rs.client.Client;
@@ -14,6 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.*;
 
 @ApplicationScoped
@@ -84,6 +86,21 @@ public class FireflyClient {
         if (response.getStatus() == 200) {
             String json = response.readEntity(String.class);
             return parseBudgets(json);
+        }
+        return new ArrayList<>();
+    }
+
+    public List<Recurrence> getRecurrences(YearMonth currentSelection) {
+        String url = fireflyApiUrl + "/recurrences";
+
+        Response response = client.target(url)
+                .request(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + fireflyApiToken)
+                .get();
+
+        if (response.getStatus() == 200) {
+            String json = response.readEntity(String.class);
+            return parseRecurrences(json, currentSelection);
         }
         return new ArrayList<>();
     }
@@ -222,7 +239,7 @@ public class FireflyClient {
                     if (attributes != null) {
                         // A API do Firefly retorna um array de transações dentro de cada item
                         JsonNode transactionsArray = attributes.get("transactions");
-                        
+
                         if (transactionsArray != null && transactionsArray.isArray()) {
                             for (JsonNode tx : transactionsArray) {
                                 String id = item.get("id").asText();
@@ -290,7 +307,73 @@ public class FireflyClient {
         return accounts;
     }
 
+    private List<Recurrence> parseRecurrences(String json, YearMonth currentSelection) {
+        List<Recurrence> recurrences = new ArrayList<>();
+
+        try{
+            JsonNode root =objectMapper.readTree(json);
+            JsonNode dataArray = root.get("data");
+
+            if (dataArray != null && dataArray.isArray()) {
+                for (JsonNode item : dataArray) {
+                    Recurrence recurrence =new Recurrence();
+                    recurrence.transactions = new ArrayList<>();
+                    LocalDate date = LocalDate.now();
+
+                    JsonNode attributes = item.get("attributes");
+                    if (attributes != null) {
+
+                        String type = attributes.get("type").asText("withdrawal");
+
+                        JsonNode repetitionsArray = attributes.get("repetitions");
+                        if (repetitionsArray != null && repetitionsArray.isArray()) {
+                            JsonNode ocurrencesArray = repetitionsArray.get(0).get("occurrences");
+                            if (ocurrencesArray != null && ocurrencesArray.isArray()) {
+                                date = LocalDate.parse(objectMapper.convertValue(ocurrencesArray, new TypeReference<List<String>>() {}).getFirst().substring(0, 10));
+                                if(date.isBefore(LocalDate.now()) || date.isEqual(LocalDate.now()) || date.getMonth() != currentSelection.getMonth()) {
+                                    continue;
+                                }
+                            }
+                        }
+
+                        JsonNode transactionsArray = attributes.get("transactions");
+                        if (transactionsArray != null && transactionsArray.isArray()) {
+                            for (JsonNode tx : transactionsArray) {
+                                String description = tx.get("description").asText("defaultValue");
+                                String category = tx.get("category_name").asText("Sem categoria");
+                                BigDecimal amount = new BigDecimal(tx.get("amount").asText("0"));
+                                List<String> tags=  objectMapper.convertValue(tx.get("tags"), new TypeReference<List<String>>() {});
+                                Transaction transaction = new Transaction(
+                                        item.get("id").asText(),
+                                        description,
+                                        amount,
+                                        date,
+                                        type,
+                                        "ok",
+                                        category,
+                                        tags
+                                );
+
+                                recurrence.transactions.add(transaction);
+                            }
+                        }
+
+                        recurrences.add(recurrence);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Erro ao parsear recurrences: " + e.getMessage());
+            e.printStackTrace();
+        }
+        return recurrences;
+    }
+
     // DTOs simples
+    public static class Recurrence {
+        public String id;
+        public List<Transaction> transactions;
+    }
     public static class Account {
         public String id;
         public String name;

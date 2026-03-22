@@ -4,6 +4,9 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.MonthDay;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -32,6 +35,7 @@ public class DashboardService {
     public DashboardDTO getDashboard(String month) {
         try {
             LocalDate today = LocalDate.now();
+            YearMonth currentSelection = YearMonth.parse(month);
             
             // Se um mês foi especificado, usa ele, senão usa o mês atual
             if (month != null && !month.isEmpty()) {
@@ -48,9 +52,13 @@ public class DashboardService {
             LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
             
             log.info("Buscando dados para o período: " + startOfMonth + " até " + endOfMonth);
-            
+
+            List<FireflyClient.Recurrence> recurrences = fireflyClient.getRecurrences(currentSelection);
+
             List<FireflyClient.Transaction> transactions = 
                     fireflyClient.getTransactions(startOfMonth, endOfMonth);
+
+            transactions.addAll(recurrences.stream().map(r -> r.transactions).flatMap(List::stream).toList());
             
             List<FireflyClient.Budget> budgetsList = fireflyClient.getBudgets();
             // Busca os limites (spend limits) para cada budget e atualiza os dados
