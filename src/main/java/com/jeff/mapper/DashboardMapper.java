@@ -1,6 +1,7 @@
 package com.jeff.mapper;
 
 import com.aayushatharva.brotli4j.common.annotations.Local;
+import com.jeff.client.MonthlyFinancialData;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -27,7 +28,8 @@ public class DashboardMapper {
     public DashboardDTO mapFromFirefly(
             List<FireflyClient.Transaction> transactions,
             Map<String, FireflyClient.Budget> budgets,
-            LocalDate referenceDate) {
+            LocalDate referenceDate,
+            List<MonthlyFinancialData> monthlyFinancialData) {
         
         LocalDate startOfMonth = referenceDate.withDayOfMonth(1);
          // Use sempre o dia de hoje, não a data de referência
@@ -40,6 +42,8 @@ public class DashboardMapper {
         dto.summary = summary;
         dto.budgets = budgetDTOs;
         dto.sankey = sankey;
+        dto.monthlyFinancialData = monthlyFinancialData;
+        dto.yearProjectedBalance = dto.calculateYearBalance();
         
         return dto;
     }

@@ -352,6 +352,7 @@
         }
     </style>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </head>
 <body>
     <div class="container">
@@ -409,6 +410,39 @@
                     <div class="card-subtitle">Déficit</div>
                 </div>
             {/if}
+        </div>
+
+        <!-- Yearly Overview Section -->
+        <div class="budgets-section" style="margin-top: 40px; margin-bottom: 40px;">
+            <h2>📅 Visão Anual: {data.yearProjectedBalance} </h2>
+
+            <!-- Legend -->
+            <div class="legend" style="margin-bottom: 20px;">
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#51cf66"></div>
+                    <span>Recebido</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#04bea1;opacity:0.7"></div>
+                    <span>Será Recebido</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#ff6b6b"></div>
+                    <span>Gasto</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#ffa94d;opacity:0.7"></div>
+                    <span>Será Gasto</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#4c6ef5;border-radius:50%"></div>
+                    <span>Saldo Projetado</span>
+                </div>
+            </div>
+
+            <div style="position: relative; width: 100%; height: 340px;">
+                <canvas id="yearChart"></canvas>
+            </div>
         </div>
 
         <!-- Budgets Section -->
@@ -497,6 +531,12 @@
             'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
             'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
         ];
+
+
+
+
+
+
 
         function updateMonthDisplay() {
             const [year, month] = currentMonth.split('-');
@@ -677,6 +717,60 @@
 
         // Chama função de renderizar Sankey quando a página carrega
         setTimeout(renderSankey, 100);
+
+        {#if data.monthlyFinancialData != null}
+        const yearlyData = [
+            {#for m in data.monthlyFinancialData}
+            {
+                receivedNow:    {m.receivedNow},
+                receivedFuture: {m.receivedFuture},
+                spentNow:       {m.spentNow},
+                spentFuture:    {m.spentFuture}
+            }
+            {#if m_count < data.monthlyFinancialData.size},{/if}
+            {/for}
+        ];
+        {/if}
+
+        const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        const projectedBalance = yearlyData.map(d =>
+            (d.receivedNow + d.receivedFuture) - (d.spentNow + d.spentFuture)
+        );
+
+        new Chart(document.getElementById('yearChart'), {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    { label: 'Recebido',      data: yearlyData.map(d=>d.receivedNow),    backgroundColor: '#51cf66',             stack: 'income',  borderRadius: 3 },
+                    { label: 'Será Recebido', data: yearlyData.map(d=>d.receivedFuture), backgroundColor: 'rgba(4,190,161,0.55)',stack: 'income',  borderRadius: 3 },
+                    { label: 'Gasto',         data: yearlyData.map(d=>d.spentNow),       backgroundColor: '#ff6b6b',             stack: 'expense', borderRadius: 3 },
+                    { label: 'Será Gasto',    data: yearlyData.map(d=>d.spentFuture),    backgroundColor: 'rgba(255,169,77,0.65)',stack: 'expense', borderRadius: 3 },
+                    {
+                        label: 'Saldo Projetado',
+                        data: projectedBalance,
+                        type: 'line',
+                        borderColor: '#4c6ef5',
+                        pointBackgroundColor: projectedBalance.map(v => v >= 0 ? '#51cf66' : '#ff6b6b'),
+                        pointBorderColor: '#1a1a2e',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        tension: 0.35,
+                        fill: false,
+                        order: 0,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#a0a0c0' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                    y: { ticks: { color: '#7a7a99', callback: v => 'R$ ' + (v/1000).toFixed(0) + 'k' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+                }
+            }
+        });
     </script>
 </body>
 </html>

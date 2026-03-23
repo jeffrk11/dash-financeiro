@@ -1,15 +1,19 @@
 package com.jeff.service;
 
+import com.jeff.client.MonthlyFinancialData;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.MonthDay;
+import java.time.Year;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.jeff.client.FireflyClient;
 import com.jeff.dto.DashboardDTO;
@@ -51,15 +55,6 @@ public class DashboardService {
             LocalDate startOfMonth = today.withDayOfMonth(1);
             LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
             
-            log.info("Buscando dados para o período: " + startOfMonth + " até " + endOfMonth);
-
-            List<FireflyClient.Recurrence> recurrences = fireflyClient.getRecurrences(currentSelection);
-
-            List<FireflyClient.Transaction> transactions = 
-                    fireflyClient.getTransactions(startOfMonth, endOfMonth);
-
-            transactions.addAll(recurrences.stream().map(r -> r.transactions).flatMap(List::stream).toList());
-            
             List<FireflyClient.Budget> budgetsList = fireflyClient.getBudgets();
             // Busca os limites (spend limits) para cada budget e atualiza os dados
             for (FireflyClient.Budget budget : budgetsList) {
@@ -70,12 +65,15 @@ public class DashboardService {
                 }
             }
 
-            
+
+            List<FireflyClient.Transaction> transactions = getMonthlyTransactions(startOfMonth, endOfMonth, currentSelection);
+            List<MonthlyFinancialData> monthlyFinancialData = getYearlyData(currentSelection.getYear());
+
             return dashboardMapper.mapFromFirefly(
                     transactions,
                     budgetsList.stream()
                         .collect(Collectors.toMap(b -> b.name, b -> b)),
-                    today);
+                    today, monthlyFinancialData);
 
         } catch (Exception e) {
             System.err.println("Erro ao buscar dados do Firefly: " + e.getMessage());
@@ -83,6 +81,34 @@ public class DashboardService {
             // Retorna dados fictícios em caso de erro
             return buildDashboard();
         }
+    }
+
+    private List<FireflyClient.Transaction> getMonthlyTransactions(LocalDate startOfMonth, LocalDate endOfMonth, YearMonth currentSelection){
+
+        log.info("Buscando dados para o período: " + startOfMonth + " até " + endOfMonth);
+
+        List<FireflyClient.Recurrence> recurrences = fireflyClient.getRecurrences(currentSelection);
+        List<FireflyClient.Transaction> transactions =
+                fireflyClient.getTransactions(startOfMonth, endOfMonth);
+
+        transactions.addAll(recurrences.stream().map(r -> r.transactions).flatMap(List::stream).toList());
+        return transactions;
+    }
+
+    private List<MonthlyFinancialData> getYearlyData(int year){
+        List<MonthlyFinancialData> yearlyData =  new ArrayList<>();
+        IntStream.rangeClosed(1, 12).forEach(month -> {
+            MonthlyFinancialData monthlyFinancialData = new MonthlyFinancialData(String.valueOf(month));
+            YearMonth ym = YearMonth.of(year, month);
+            LocalDate startOfMonth = ym.atDay(1);
+            LocalDate endOfMonth = ym.atEndOfMonth();
+
+            List<FireflyClient.Transaction> transactions = getMonthlyTransactions(startOfMonth, endOfMonth, ym);
+            monthlyFinancialData.buildMonthlyFinancialData(transactions);
+            yearlyData.add(monthlyFinancialData);
+        });
+
+        return yearlyData;
     }
 
     /**
