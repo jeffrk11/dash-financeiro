@@ -326,15 +326,20 @@ public class FireflyClient {
                         String type = attributes.get("type").asText("withdrawal");
 
                         JsonNode repetitionsArray = attributes.get("repetitions");
+                        boolean validRecurrence = false;
                         if (repetitionsArray != null && repetitionsArray.isArray()) {
                             JsonNode ocurrencesArray = repetitionsArray.get(0).get("occurrences");
                             if (ocurrencesArray != null && ocurrencesArray.isArray()) {
-                                date = LocalDate.parse(objectMapper.convertValue(ocurrencesArray, new TypeReference<List<String>>() {}).getFirst().substring(0, 10));
-                                if(date.isBefore(LocalDate.now()) || date.isEqual(LocalDate.now()) || date.getMonth() != currentSelection.getMonth()) {
-                                    continue;
+                                for (JsonNode occurrence : ocurrencesArray) {
+                                    date = LocalDate.parse(occurrence.asText().substring(0, 10));
+                                     if(date.getMonth().compareTo(currentSelection.getMonth()) == 0) {
+                                         validRecurrence = true;
+                                         break;
+                                    }
                                 }
                             }
                         }
+                        if (!validRecurrence) continue;
 
                         JsonNode transactionsArray = attributes.get("transactions");
                         if (transactionsArray != null && transactionsArray.isArray()) {
