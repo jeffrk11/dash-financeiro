@@ -14,9 +14,12 @@ import com.jeff.dto.CategoryDTO;
 import com.jeff.dto.DashboardDTO;
 import com.jeff.dto.SankeyDTO;
 import com.jeff.dto.SummaryDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
 public class DashboardMapper {
+    private static final Logger log = LoggerFactory.getLogger(DashboardMapper.class);
     private final LocalDate today;
     public DashboardMapper() {
         today = LocalDate.now();
@@ -34,7 +37,7 @@ public class DashboardMapper {
         LocalDate startOfMonth = referenceDate.withDayOfMonth(1);
          // Use sempre o dia de hoje, não a data de referência
         
-        SummaryDTO summary = buildSummary(transactions, startOfMonth);
+        SummaryDTO summary = buildSummary(transactions);
         List<BudgetDTO> budgetDTOs = buildBudgets(budgets, transactions);
         SankeyDTO sankey = buildSankey(transactions, startOfMonth);
         
@@ -51,8 +54,7 @@ public class DashboardMapper {
     /**
      * Constrói o resumo financeiro a partir das transações
      */
-    private SummaryDTO buildSummary(List<FireflyClient.Transaction> transactions, 
-                                    LocalDate startOfMonth) {
+    private SummaryDTO buildSummary(List<FireflyClient.Transaction> transactions) {
         SummaryDTO summary = new SummaryDTO();
         
         BigDecimal spentNow = BigDecimal.ZERO;
@@ -77,6 +79,8 @@ public class DashboardMapper {
                 }
             } else {
                 if (isWithdrawal) {
+                    log.info("today: {}", today.toString());
+                    log.info("Transação futura de saída: {} - {} - {}", tx.description, tx.amount, tx.date);
                     spentFuture = spentFuture.add(tx.amount);
                 } else {
                     receivedFuture = receivedFuture.add(tx.amount);
