@@ -7,6 +7,10 @@ services:
     networks:
       - firefly_firefly_iii
     restart: unless-stopped
+    environment:
+      - JAVA_TOOL_OPTIONS=-Duser.timezone=Europe/Lisbon
+    security_opt:
+      - seccomp:unconfined  # allows real syscall clock reads
 
 networks:
   firefly_firefly_iii:
