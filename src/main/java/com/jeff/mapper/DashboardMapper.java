@@ -33,6 +33,7 @@ public class DashboardMapper {
             Map<String, FireflyClient.Budget> budgets,
             LocalDate referenceDate,
             List<MonthlyFinancialData> monthlyFinancialData) {
+        today = LocalDate.now();
         
         LocalDate startOfMonth = referenceDate.withDayOfMonth(1);
          // Use sempre o dia de hoje, não a data de referência
