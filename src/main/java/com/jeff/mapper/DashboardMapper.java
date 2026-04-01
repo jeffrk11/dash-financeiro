@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 @ApplicationScoped
 public class DashboardMapper {
     private static final Logger log = LoggerFactory.getLogger(DashboardMapper.class);
-    private final LocalDate today;
+    private LocalDate today;
     public DashboardMapper() {
         today = LocalDate.now();
     }
