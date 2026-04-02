@@ -1,0 +1,13 @@
+name: Build and Deploy via Tailscale
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        run: |
+          read v && echo $v
