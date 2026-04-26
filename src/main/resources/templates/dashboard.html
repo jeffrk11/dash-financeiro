@@ -543,19 +543,13 @@
 
                     <div class="budget-bar-container">
                         {#if budget.getSpentPercentage() > 0}
-                            <div class="budget-bar-spent" style="flex-basis: {budget.getSpentPercentage()}%">
-                                {#if budget.getSpentPercentage() > 8}{budget.getSpentPercentage()}%{/if}
-                            </div>
+                            <div class="budget-bar-spent" style="flex-basis: {budget.getSpentPercentage()}%"></div>
                         {/if}
                         {#if budget.getFuturePercentage() > 0}
-                            <div class="budget-bar-future" style="flex-basis: {budget.getFuturePercentage()}%">
-                                {#if budget.getFuturePercentage() > 8}{budget.getFuturePercentage()}%{/if}
-                            </div>
+                            <div class="budget-bar-future" style="flex-basis: {budget.getFuturePercentage()}%"></div>
                         {/if}
                         {#if budget.getAvailablePercentage() > 0}
-                            <div class="budget-bar-available" style="flex-basis: {budget.getAvailablePercentage()}%">
-                                {#if budget.getAvailablePercentage() > 8}{budget.getAvailablePercentage()}%{/if}
-                            </div>
+                            <div class="budget-bar-available" style="flex-basis: {budget.getAvailablePercentage()}%"></div>
                         {/if}
                     </div>
                 </div>
@@ -775,8 +769,7 @@
                 Plotly.newPlot('sankey-chart', data, layout, { responsive: true }).then(() => {
                     document.querySelectorAll('#sankey-chart .sankey text').forEach(el => {
                         el.style.fill = '#ffffff';
-                        el.style.stroke = '#f8f7f7';
-                        el.style.strokeWidth = '1.5px';
+                        el.style.stroke = '#ffffff';
                     });
                 });
             } catch (error) {
@@ -812,9 +805,9 @@
             data: {
                 labels: months,
                 datasets: [
-                    { label: 'Recebido',      data: yearlyData.map(d=>d.receivedNow),    backgroundColor: '#51cf66',             stack: 'income',  borderRadius: 3 },
-                    { label: 'Será Recebido', data: yearlyData.map(d=>d.receivedFuture), backgroundColor: 'rgba(4,190,161,0.55)',stack: 'income',  borderRadius: 3 },
-                    { label: 'Gasto',         data: yearlyData.map(d=>d.spentNow),       backgroundColor: '#ff6b6b',             stack: 'expense', borderRadius: 3 },
+                    { label: 'Recebido',      data: yearlyData.map(d=>d.receivedNow),    backgroundColor: '#51cf66',              stack: 'income',  borderRadius: 3 },
+                    { label: 'Será Recebido', data: yearlyData.map(d=>d.receivedFuture), backgroundColor: 'rgba(4,190,161,0.55)', stack: 'income',  borderRadius: 3 },
+                    { label: 'Gasto',         data: yearlyData.map(d=>d.spentNow),       backgroundColor: '#ff6b6b',              stack: 'expense', borderRadius: 3 },
                     { label: 'Será Gasto',    data: yearlyData.map(d=>d.spentFuture),    backgroundColor: 'rgba(255,169,77,0.65)',stack: 'expense', borderRadius: 3 },
                     {
                         label: 'Saldo Projetado',
@@ -824,7 +817,7 @@
                         pointBackgroundColor: projectedBalance.map(v => v >= 0 ? '#51cf66' : '#ff6b6b'),
                         pointBorderColor: '#1a1a2e',
                         pointBorderWidth: 2,
-                        pointRadius: 5,
+                        pointRadius: ctx => ctx.chart.width < 500 ? 3 : 5,
                         tension: 0.35,
                         fill: false,
                         order: 0,
@@ -836,8 +829,24 @@
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    x: { ticks: { color: '#a0a0c0' }, grid: { color: 'rgba(255,255,255,0.04)' } },
-                    y: { ticks: { color: '#7a7a99', callback: v => 'R$ ' + (v/1000).toFixed(0) + 'k' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+                    x: {
+                        ticks: {
+                            color: '#a0a0c0',
+                            font: ctx => ({ size: ctx.chart.width < 500 ? 9 : 12 }),
+                            maxRotation: 0,
+                            autoSkip: false
+                        },
+                        grid: { color: 'rgba(255,255,255,0.04)' }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#7a7a99',
+                            font: ctx => ({ size: ctx.chart.width < 500 ? 9 : 12 }),
+                            maxTicksLimit: 6,
+                            callback: v => 'R$' + (v/1000).toFixed(0) + 'k'
+                        },
+                        grid: { color: 'rgba(255,255,255,0.06)' }
+                    }
                 }
             }
         });
