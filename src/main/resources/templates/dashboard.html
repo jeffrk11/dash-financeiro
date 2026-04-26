@@ -314,12 +314,30 @@
 
         /* Responsive */
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
             .summary-cards {
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 12px;
+                margin-bottom: 24px;
             }
 
             header h1 {
-                font-size: 1.8em;
+                font-size: 1.5em;
+            }
+
+            header p {
+                font-size: 0.85em;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            .card-value {
+                font-size: 1.5em;
             }
 
             .month-navigation {
@@ -327,17 +345,37 @@
             }
 
             .month-nav-button {
-                padding: 8px 15px;
-                font-size: 0.9em;
+                padding: 8px 12px;
+                font-size: 0.85em;
             }
 
             .month-display {
-                font-size: 1em;
-                min-width: 120px;
+                font-size: 0.95em;
+                min-width: 110px;
             }
 
             .budgets-section {
-                padding: 20px;
+                padding: 15px;
+            }
+
+            .budgets-section h2,
+            .sankey-section h2 {
+                font-size: 1.3em;
+                margin-bottom: 15px;
+            }
+
+            .sankey-section {
+                padding: 15px;
+            }
+
+            .budget-info {
+                flex-wrap: wrap;
+                gap: 6px;
+                justify-content: flex-start;
+            }
+
+            .budget-info-item {
+                min-width: 46%;
             }
 
             .budget-bar-container {
@@ -348,6 +386,37 @@
             .budget-bar-future,
             .budget-bar-available {
                 font-size: 0.7em;
+            }
+
+            .legend {
+                gap: 10px;
+            }
+
+            .legend-item {
+                font-size: 0.8em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.2em;
+            }
+
+            .card-value {
+                font-size: 1.2em;
+            }
+
+            .card-title {
+                font-size: 0.8em;
+            }
+
+            .budget-info-item {
+                min-width: 100%;
+            }
+
+            .month-nav-button {
+                padding: 7px 10px;
+                font-size: 0.8em;
             }
         }
     </style>
@@ -512,7 +581,7 @@
         <!-- Sankey Diagram -->
         <div class="sankey-section">
             <h2>🌊 Despesas por Categoria</h2>
-            <div id="sankey-chart" style="width: 100%; height: 500px;"></div>
+            <div id="sankey-chart" style="width: 100%;"></div>
         </div>
     </div>
 
@@ -694,10 +763,11 @@
                     }
                 }];
 
+                const isMobile = window.innerWidth < 768;
                 const layout = {
-                    font: { size: 16, color: '#f8f8f8' },
-                    height: 600,
-                    margin: { l: 100, r: 100, t: 50, b: 50 },
+                    font: { size: isMobile ? 11 : 16, color: '#f8f8f8' },
+                    height: isMobile ? 350 : 600,
+                    margin: isMobile ? { l: 5, r: 5, t: 20, b: 20 } : { l: 100, r: 100, t: 50, b: 50 },
                     paper_bgcolor: '#1a1a2e',
                     plot_bgcolor: '#1a1a2e'
                 };
