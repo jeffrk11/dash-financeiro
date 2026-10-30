@@ -456,6 +456,35 @@
         }
         .pill-available .pill-value { color: var(--c-received); }
 
+        /* ─── Projection (run-rate) ──────────────────────────── */
+        .budget-status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            flex-shrink: 0;
+        }
+        .budget-status-dot.status-ok { background: #51cf66; }
+        .budget-status-dot.status-warning { background: #ffd43b; }
+        .budget-status-dot.status-over { background: #ff6b6b; }
+
+        .pill-projected {
+            background: rgba(81,207,102,0.1);
+            border-color: rgba(81,207,102,0.25);
+        }
+        .pill-projected .pill-value { color: #51cf66; }
+        .pill-projected.status-warning {
+            background: rgba(255,212,59,0.12);
+            border-color: rgba(255,212,59,0.3);
+        }
+        .pill-projected.status-warning .pill-value { color: #ffd43b; }
+        .pill-projected.status-over {
+            background: rgba(255,107,107,0.12);
+            border-color: rgba(255,107,107,0.3);
+        }
+        .pill-projected.status-over .pill-value { color: #ff6b6b; }
+
         /* ─── Responsive ─────────────────────────────────────── */
         @media (max-width: 1100px) {
             .main-grid {
@@ -684,7 +713,7 @@
                     {#for budget in data.budgets}
                         <div class="budget-item">
                             <div class="budget-item-header">
-                                <span class="budget-name">{budget.name}</span>
+                                <span class="budget-name"><span class="budget-status-dot status-{budget.projectionStatus}"></span>{budget.name}</span>
                                 <span class="budget-total-badge">R$ {budget.totalFormatted}</span>
                             </div>
                             <div class="budget-bar-container">
@@ -710,6 +739,10 @@
                                 <span class="pill pill-available">
                                     <span class="pill-label">Disponível</span>
                                     <span class="pill-value">R$ {budget.availableFormatted}</span>
+                                </span>
+                                <span class="pill pill-projected status-{budget.projectionStatus}">
+                                    <span class="pill-label">Projetado</span>
+                                    <span class="pill-value">R$ {budget.projectedFormatted}</span>
                                 </span>
                             </div>
                         </div>

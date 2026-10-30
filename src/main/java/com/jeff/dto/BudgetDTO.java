@@ -14,6 +14,7 @@ public class BudgetDTO {
     public BigDecimal spent;
     public BigDecimal future;
     public BigDecimal available;
+    public BigDecimal projected;
 
     private static final DecimalFormat currencyFormatter = 
         new DecimalFormat("0.00", new DecimalFormatSymbols(new Locale("pt", "BR")));
@@ -105,6 +106,31 @@ public class BudgetDTO {
     public double getAvailablePercentage() {
         if (total == null || total.compareTo(BigDecimal.ZERO) == 0) return 0;
         return available.doubleValue() / total.doubleValue() * 100;
+    }
+
+    public BigDecimal getProjected() {
+        return projected;
+    }
+
+    public void setProjected(BigDecimal projected) {
+        this.projected = projected;
+    }
+
+    public String getProjectedFormatted() {
+        return projected != null ? currencyFormatter.format(projected) : "0,00";
+    }
+
+    public double getProjectedPercentage() {
+        if (total == null || total.compareTo(BigDecimal.ZERO) == 0 || projected == null) return 0;
+        return projected.doubleValue() / total.doubleValue() * 100;
+    }
+
+    /** "ok" (on track), "warning" (will come close, 90-100%), "over" (will blow past 100%). */
+    public String getProjectionStatus() {
+        double pct = getProjectedPercentage();
+        if (pct > 100) return "over";
+        if (pct >= 90) return "warning";
+        return "ok";
     }
 }
 
