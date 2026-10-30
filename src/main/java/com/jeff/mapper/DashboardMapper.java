@@ -13,6 +13,7 @@ import com.jeff.dto.AccountDTO;
 import com.jeff.dto.BudgetDTO;
 import com.jeff.dto.CategoryDTO;
 import com.jeff.dto.DashboardDTO;
+import com.jeff.dto.DebtDTO;
 import com.jeff.dto.SankeyDTO;
 import com.jeff.dto.SummaryDTO;
 import org.slf4j.Logger;
@@ -34,7 +35,8 @@ public class DashboardMapper {
             Map<String, FireflyClient.Budget> budgets,
             LocalDate referenceDate,
             List<MonthlyFinancialData> monthlyFinancialData,
-            List<FireflyClient.Account> accounts) {
+            List<FireflyClient.Account> accounts,
+            List<FireflyClient.Account> liabilities) {
         today = LocalDate.now();
 
         LocalDate startOfMonth = referenceDate.withDayOfMonth(1);
@@ -44,6 +46,7 @@ public class DashboardMapper {
         List<BudgetDTO> budgetDTOs = buildBudgets(budgets, transactions);
         SankeyDTO sankey = buildSankey(transactions, startOfMonth);
         List<AccountDTO> accountDTOs = buildAccounts(accounts);
+        List<DebtDTO> debtDTOs = buildDebts(liabilities);
 
         DashboardDTO dto = new DashboardDTO();
         dto.summary = summary;
@@ -52,6 +55,7 @@ public class DashboardMapper {
         dto.monthlyFinancialData = monthlyFinancialData;
         dto.yearProjectedBalance = dto.calculateYearBalance();
         dto.accounts = accountDTOs;
+        dto.debts = debtDTOs;
 
         return dto;
     }
@@ -72,6 +76,17 @@ public class DashboardMapper {
                     return dto;
                 })
                 .sorted((a, b) -> b.balance.compareTo(a.balance))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Mapeia os passivos (empréstimos/financiamentos) do Firefly, maior dívida primeiro.
+     */
+    private List<DebtDTO> buildDebts(List<FireflyClient.Account> liabilities) {
+        if (liabilities == null) return new ArrayList<>();
+        return liabilities.stream()
+                .map(a -> new DebtDTO(a.name, a.balance))
+                .sorted((a, b) -> b.owed.compareTo(a.owed))
                 .collect(Collectors.toList());
     }
 

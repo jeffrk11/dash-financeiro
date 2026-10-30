@@ -41,7 +41,25 @@ public class FireflyClient {
      */
     public List<Account> getAccounts() {
         String url = fireflyApiUrl + "/accounts?type=asset";
-        
+
+        Response response = client.target(url)
+                .request(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + fireflyApiToken)
+                .get();
+
+        if (response.getStatus() == 200) {
+            String json = response.readEntity(String.class);
+            return parseAccounts(json);
+        }
+        return new ArrayList<>();
+    }
+
+    /**
+     * Busca os passivos (empréstimos, financiamentos, dívidas) do Firefly.
+     */
+    public List<Account> getLiabilities() {
+        String url = fireflyApiUrl + "/accounts?type=liability";
+
         Response response = client.target(url)
                 .request(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + fireflyApiToken)

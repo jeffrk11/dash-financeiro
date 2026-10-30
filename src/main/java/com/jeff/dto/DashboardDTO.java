@@ -14,6 +14,7 @@ public class DashboardDTO {
     public SummaryDTO summary;
     public List<BudgetDTO> budgets;
     public List<AccountDTO> accounts;
+    public List<DebtDTO> debts;
     public SankeyDTO sankey;
     public List<MonthlyFinancialData> monthlyFinancialData;
     public BigDecimal yearProjectedBalance;
@@ -47,6 +48,31 @@ public class DashboardDTO {
 
     public void setAccounts(List<AccountDTO> accounts) {
         this.accounts = accounts;
+    }
+
+    public List<DebtDTO> getDebts() {
+        return debts;
+    }
+
+    public void setDebts(List<DebtDTO> debts) {
+        this.debts = debts;
+    }
+
+    public boolean getHasDebts() {
+        return debts != null && !debts.isEmpty();
+    }
+
+    public BigDecimal getTotalDebt() {
+        if (debts == null) return BigDecimal.ZERO;
+        BigDecimal total = BigDecimal.ZERO;
+        for (DebtDTO d : debts) {
+            if (d.owed != null) total = total.add(d.owed);
+        }
+        return total;
+    }
+
+    public String getTotalDebtFormatted() {
+        return "€" + currencyFormatter.format(getTotalDebt());
     }
 
     public BigDecimal getTotalBalance() {
