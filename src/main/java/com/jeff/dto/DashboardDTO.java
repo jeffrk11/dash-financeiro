@@ -15,6 +15,7 @@ public class DashboardDTO {
     public List<BudgetDTO> budgets;
     public List<AccountDTO> accounts;
     public List<DebtDTO> debts;
+    public List<PredictedExpenseDTO> predictedRecurring;
     public SankeyDTO sankey;
     public List<MonthlyFinancialData> monthlyFinancialData;
     public BigDecimal yearProjectedBalance;
@@ -62,6 +63,31 @@ public class DashboardDTO {
         return debts != null && !debts.isEmpty();
     }
 
+    public List<PredictedExpenseDTO> getPredictedRecurring() {
+        return predictedRecurring;
+    }
+
+    public void setPredictedRecurring(List<PredictedExpenseDTO> predictedRecurring) {
+        this.predictedRecurring = predictedRecurring;
+    }
+
+    public boolean getHasPredictedRecurring() {
+        return predictedRecurring != null && !predictedRecurring.isEmpty();
+    }
+
+    public BigDecimal getTotalPredictedRecurring() {
+        if (predictedRecurring == null) return BigDecimal.ZERO;
+        BigDecimal total = BigDecimal.ZERO;
+        for (PredictedExpenseDTO p : predictedRecurring) {
+            if (p.amount != null) total = total.add(p.amount);
+        }
+        return total;
+    }
+
+    public String getTotalPredictedRecurringFormatted() {
+        return "€" + currencyFormatter.format(getTotalPredictedRecurring());
+    }
+
     public BigDecimal getTotalDebt() {
         if (debts == null) return BigDecimal.ZERO;
         BigDecimal total = BigDecimal.ZERO;
@@ -106,14 +132,15 @@ public class DashboardDTO {
 
     /**
      * O número que realmente importa: saldo das contas do dia a dia, menos o que já se
-     * sabe que vai sair até o fim do mês (contas recorrentes, parcelas), mais o que já
-     * se sabe que vai entrar (reembolsos, etc. — não o salário, que só é lançado dia 1).
+     * sabe que vai sair até o fim do mês (contas recorrentes, parcelas) e o que se espera
+     * que saia mas ainda não tem valor/data exatos (média da categoria "fixas"), mais o
+     * que já se sabe que vai entrar (reembolsos, etc. — não o salário, só lançado dia 1).
      */
     public BigDecimal getSafeToSpend() {
         if (summary == null) return getSpendableBalance();
         BigDecimal spentFuture = summary.spentFuture != null ? summary.spentFuture : BigDecimal.ZERO;
         BigDecimal receivedFuture = summary.receivedFuture != null ? summary.receivedFuture : BigDecimal.ZERO;
-        return getSpendableBalance().subtract(spentFuture).add(receivedFuture);
+        return getSpendableBalance().subtract(spentFuture).subtract(getTotalPredictedRecurring()).add(receivedFuture);
     }
 
     public String getSafeToSpendFormatted() {

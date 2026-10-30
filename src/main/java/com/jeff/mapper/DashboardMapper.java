@@ -4,7 +4,9 @@ import com.aayushatharva.brotli4j.common.annotations.Local;
 import com.jeff.client.MonthlyFinancialData;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -14,6 +16,7 @@ import com.jeff.dto.BudgetDTO;
 import com.jeff.dto.CategoryDTO;
 import com.jeff.dto.DashboardDTO;
 import com.jeff.dto.DebtDTO;
+import com.jeff.dto.PredictedExpenseDTO;
 import com.jeff.dto.SankeyDTO;
 import com.jeff.dto.SummaryDTO;
 import org.slf4j.Logger;
@@ -36,7 +39,8 @@ public class DashboardMapper {
             LocalDate referenceDate,
             List<MonthlyFinancialData> monthlyFinancialData,
             List<FireflyClient.Account> accounts,
-            List<FireflyClient.Account> liabilities) {
+            List<FireflyClient.Account> liabilities,
+            List<FireflyClient.Transaction> fixasHistory) {
         today = LocalDate.now();
 
         LocalDate startOfMonth = referenceDate.withDayOfMonth(1);
@@ -47,6 +51,7 @@ public class DashboardMapper {
         SankeyDTO sankey = buildSankey(transactions, startOfMonth);
         List<AccountDTO> accountDTOs = buildAccounts(accounts);
         List<DebtDTO> debtDTOs = buildDebts(liabilities);
+        List<PredictedExpenseDTO> predictedDTOs = buildPredictedRecurring(fixasHistory, YearMonth.from(startOfMonth));
 
         DashboardDTO dto = new DashboardDTO();
         dto.summary = summary;
@@ -56,8 +61,49 @@ public class DashboardMapper {
         dto.yearProjectedBalance = dto.calculateYearBalance();
         dto.accounts = accountDTOs;
         dto.debts = debtDTOs;
+        dto.predictedRecurring = predictedDTOs;
 
         return dto;
+    }
+
+    /**
+     * Despesas da categoria "fixas" que normalmente acontecem todo mês mas ainda não
+     * aconteceram no mês visualizado — estimadas pela média dos meses anteriores.
+     * Só existem gastos recorrentes nessa categoria (sem pontual), por isso dá pra usar
+     * ela direto sem precisar de uma tag separada.
+     */
+    private List<PredictedExpenseDTO> buildPredictedRecurring(List<FireflyClient.Transaction> fixasHistory, YearMonth viewedMonth) {
+        if (fixasHistory == null) return new ArrayList<>();
+
+        Map<String, List<BigDecimal>> historyByDescription = new HashMap<>();
+        Map<String, Set<YearMonth>> monthsSeenByDescription = new HashMap<>();
+        Set<String> happenedThisMonth = new HashSet<>();
+
+        for (FireflyClient.Transaction tx : fixasHistory) {
+            if (tx.date == null || tx.description == null || !"withdrawal".equals(tx.type)) continue;
+            YearMonth txMonth = YearMonth.from(tx.date);
+            if (txMonth.equals(viewedMonth)) {
+                happenedThisMonth.add(tx.description);
+            } else if (txMonth.isBefore(viewedMonth)) {
+                historyByDescription.computeIfAbsent(tx.description, k -> new ArrayList<>()).add(tx.amount.abs());
+                monthsSeenByDescription.computeIfAbsent(tx.description, k -> new HashSet<>()).add(txMonth);
+            }
+        }
+
+        // Só prevê quem já apareceu em pelo menos 2 meses diferentes — descrições que só
+        // aparecem uma vez costumam ser rótulo pontual/variado (ex: "seguro casa março"),
+        // não uma recorrência de verdade, e previam gasto fantasma se contadas.
+        List<PredictedExpenseDTO> predicted = new ArrayList<>();
+        for (Map.Entry<String, List<BigDecimal>> entry : historyByDescription.entrySet()) {
+            if (happenedThisMonth.contains(entry.getKey())) continue;
+            if (monthsSeenByDescription.get(entry.getKey()).size() < 2) continue;
+            List<BigDecimal> amounts = entry.getValue();
+            BigDecimal sum = amounts.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal avg = sum.divide(BigDecimal.valueOf(amounts.size()), 2, RoundingMode.HALF_UP);
+            predicted.add(new PredictedExpenseDTO(entry.getKey(), avg));
+        }
+        predicted.sort((a, b) -> b.amount.compareTo(a.amount));
+        return predicted;
     }
 
     /**

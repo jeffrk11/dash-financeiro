@@ -187,6 +187,21 @@
         .safe-to-spend-sep {
             opacity: 0.5;
         }
+        .safe-to-spend-predicted-list {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        .predicted-chip {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.04);
+            border: 1px dashed rgba(255,255,255,0.15);
+            border-radius: 20px;
+            padding: 3px 10px;
+        }
 
         /* ─── Summary Cards ──────────────────────────────────── */
         .summary-cards {
@@ -818,9 +833,20 @@
                 <span>Saldo contas do dia a dia: {data.spendableBalanceFormatted}</span>
                 <span class="safe-to-spend-sep">·</span>
                 <span>Gastos futuros conhecidos: -€{data.summary.spentFutureFormatted}</span>
+                {#if data.hasPredictedRecurring}
+                <span class="safe-to-spend-sep">·</span>
+                <span>Fixas previstas (ainda não lançadas): -{data.totalPredictedRecurringFormatted}</span>
+                {/if}
                 <span class="safe-to-spend-sep">·</span>
                 <span>Recebimentos futuros esperados: +€{data.summary.receivedFutureFormatted}</span>
             </div>
+            {#if data.hasPredictedRecurring}
+            <div class="safe-to-spend-predicted-list">
+                {#for item in data.predictedRecurring}
+                <span class="predicted-chip">{item.name}: ~{item.amountFormatted}</span>
+                {/for}
+            </div>
+            {/if}
         </div>
 
         <!-- Summary Cards -->

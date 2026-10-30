@@ -73,6 +73,26 @@ public class FireflyClient {
     }
 
     /**
+     * Busca todas as transações de uma categoria (sem filtro de período — usado pra
+     * calcular a média histórica das despesas "fixas" que não têm valor/data fixos,
+     * tipo o cartão de crédito com pagamento em percentual).
+     */
+    public List<Transaction> getTransactionsByCategory(String categoryId) {
+        String url = fireflyApiUrl + "/categories/" + categoryId + "/transactions";
+
+        Response response = client.target(url)
+                .request(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + fireflyApiToken)
+                .get();
+
+        if (response.getStatus() == 200) {
+            String json = response.readEntity(String.class);
+            return parseTransactions(json);
+        }
+        return new ArrayList<>();
+    }
+
+    /**
      * Busca todas as transações do mês
      */
     public List<Transaction> getTransactions(LocalDate startDate, LocalDate endDate) {
