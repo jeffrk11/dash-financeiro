@@ -10,6 +10,8 @@ public class MonthlyFinancialData {
         BigDecimal receivedFuture;
         BigDecimal spentNow;
         BigDecimal spentFuture;
+        /** Quanto foi pra poupança/investimento este mês (líquido — já descontando o que voltou). */
+        BigDecimal saved;
 
         public MonthlyFinancialData(String month) {
             this.month = month;
@@ -17,6 +19,7 @@ public class MonthlyFinancialData {
             this.receivedFuture = new BigDecimal(0);
             this.spentNow = new BigDecimal(0);
             this.spentFuture = new BigDecimal(0);
+            this.saved = new BigDecimal(0);
         }
 
     public void buildMonthlyFinancialData(List<FireflyClient.Transaction> transactions) {
@@ -39,6 +42,14 @@ public class MonthlyFinancialData {
                     spentNow = spentNow.add(tx.amount.abs());
                 } else {
                     spentFuture = spentFuture.add(tx.amount.abs());
+                }
+            } else if (tx.type.equals("transfer") && tx.tags != null) {
+                // Mesma convenção de tag usada nos orçamentos "reserva"/"investir":
+                // "saving" = indo pra poupança/investimento, "expending" = voltando de lá.
+                if (tx.tags.contains("saving")) {
+                    saved = saved.add(tx.amount.abs());
+                } else if (tx.tags.contains("expending")) {
+                    saved = saved.subtract(tx.amount.abs());
                 }
             }
         }
@@ -79,5 +90,13 @@ public class MonthlyFinancialData {
 
     public void setSpentFuture(BigDecimal spentFuture) {
         this.spentFuture = spentFuture;
+    }
+
+    public BigDecimal getSaved() {
+        return saved;
+    }
+
+    public void setSaved(BigDecimal saved) {
+        this.saved = saved;
     }
 }
