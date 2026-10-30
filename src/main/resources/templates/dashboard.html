@@ -238,6 +238,22 @@
             gap: 16px;
             margin-top: 18px;
         }
+        .flow-detail {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .flow-detail-items {
+            margin-top: 2px;
+            color: #9fa6d9;
+        }
+        .flow-detail-sep {
+            opacity: 0.5;
+        }
 
         /* ─── Panel (shared base) ────────────────────────────── */
         .panel {
@@ -786,6 +802,22 @@
                 </div>
                 <span class="flow-row-value {#if data.safeToSpendIsNegative}negative{/if}">{data.spendableBalanceFormatted} <span class="flow-row-value-future">· livre {data.safeToSpendFormatted}</span></span>
             </div>
+            <div class="flow-detail">
+                <span>Conhecidos: -€{data.summary.spentFutureFormatted}</span>
+                {#if data.hasPredictedRecurring}
+                <span class="flow-detail-sep">·</span>
+                <span>Previstos (fixas): -{data.totalPredictedRecurringFormatted}</span>
+                {/if}
+                <span class="flow-detail-sep">·</span>
+                <span>Recebimentos futuros: +€{data.summary.receivedFutureFormatted}</span>
+            </div>
+            {#if data.hasPredictedRecurring}
+            <div class="flow-detail flow-detail-items">
+                {#for item in data.predictedRecurring}
+                <span>{item.name}: ~{item.amountFormatted}</span>{#if item_count < data.predictedRecurring.size}<span class="flow-detail-sep">·</span>{/if}
+                {/for}
+            </div>
+            {/if}
 
             <div class="flow-legend">
                 <div class="legend-item"><div class="legend-color" style="background:#51cf66"></div><span>Recebido</span></div>
