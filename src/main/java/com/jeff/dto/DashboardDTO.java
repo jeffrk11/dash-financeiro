@@ -64,6 +64,45 @@ public class DashboardDTO {
         return sign + "€" + currencyFormatter.format(total.abs());
     }
 
+    /** Saldo só das contas do dia a dia — exclui poupança/investimento/reserva. */
+    public BigDecimal getSpendableBalance() {
+        if (accounts == null) return BigDecimal.ZERO;
+        BigDecimal total = BigDecimal.ZERO;
+        for (AccountDTO a : accounts) {
+            if (!a.reserve && a.balance != null) total = total.add(a.balance);
+        }
+        return total;
+    }
+
+    public String getSpendableBalanceFormatted() {
+        return formatSigned(getSpendableBalance());
+    }
+
+    /**
+     * O número que realmente importa: saldo das contas do dia a dia, menos o que já se
+     * sabe que vai sair até o fim do mês (contas recorrentes, parcelas), mais o que já
+     * se sabe que vai entrar (reembolsos, etc. — não o salário, que só é lançado dia 1).
+     */
+    public BigDecimal getSafeToSpend() {
+        if (summary == null) return getSpendableBalance();
+        BigDecimal spentFuture = summary.spentFuture != null ? summary.spentFuture : BigDecimal.ZERO;
+        BigDecimal receivedFuture = summary.receivedFuture != null ? summary.receivedFuture : BigDecimal.ZERO;
+        return getSpendableBalance().subtract(spentFuture).add(receivedFuture);
+    }
+
+    public String getSafeToSpendFormatted() {
+        return formatSigned(getSafeToSpend());
+    }
+
+    public boolean getSafeToSpendIsNegative() {
+        return getSafeToSpend().compareTo(BigDecimal.ZERO) < 0;
+    }
+
+    private String formatSigned(BigDecimal value) {
+        String sign = value.compareTo(BigDecimal.ZERO) < 0 ? "-" : "";
+        return sign + "€" + currencyFormatter.format(value.abs());
+    }
+
     public BigDecimal getYearProjectedBalance() {
         return yearProjectedBalance;
     }

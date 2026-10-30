@@ -11,6 +11,8 @@ import java.util.Locale;
 public class AccountDTO {
     public String name;
     public BigDecimal balance;
+    /** Dinheiro guardado de propósito (poupança/investimento) — não entra na conta de "livre pra gastar". */
+    public boolean reserve;
 
     private static final DecimalFormat currencyFormatter =
         new DecimalFormat("0.00", new DecimalFormatSymbols(new Locale("pt", "BR")));
@@ -38,5 +40,13 @@ public class AccountDTO {
 
     public boolean getIsNegative() {
         return balance != null && balance.compareTo(BigDecimal.ZERO) < 0;
+    }
+
+    public boolean getReserve() {
+        return reserve;
+    }
+
+    public void setReserve(boolean reserve) {
+        this.reserve = reserve;
     }
 }

@@ -63,7 +63,14 @@ public class DashboardMapper {
         if (accounts == null) return new ArrayList<>();
         return accounts.stream()
                 .filter(a -> !"Carteira de dinheiro".equals(a.name))
-                .map(a -> new AccountDTO(a.name, a.balance))
+                .map(a -> {
+                    AccountDTO dto = new AccountDTO(a.name, a.balance);
+                    String lowerName = a.name.toLowerCase();
+                    dto.reserve = lowerName.contains("poupança") || lowerName.contains("poupanca")
+                            || lowerName.contains("reserva") || lowerName.contains("invest")
+                            || lowerName.contains("trade republic");
+                    return dto;
+                })
                 .sorted((a, b) -> b.balance.compareTo(a.balance))
                 .collect(Collectors.toList());
     }

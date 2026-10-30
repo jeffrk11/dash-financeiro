@@ -140,6 +140,54 @@
             transition: background 0.2s ease;
         }
 
+        /* ─── Safe to Spend ───────────────────────────────────── */
+        .safe-to-spend {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            text-align: center;
+            padding: 24px;
+            margin-bottom: var(--gap);
+            border-radius: var(--radius-lg);
+            background: rgba(81,207,102,0.08);
+            border: 1px solid rgba(81,207,102,0.25);
+            box-shadow: var(--shadow);
+        }
+        .safe-to-spend.negative {
+            background: rgba(255,107,107,0.08);
+            border-color: rgba(255,107,107,0.25);
+        }
+        .safe-to-spend-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .safe-to-spend-value {
+            display: block;
+            font-size: 2.6rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            color: #51cf66;
+            line-height: 1.2;
+        }
+        .safe-to-spend.negative .safe-to-spend-value {
+            color: #ff6b6b;
+        }
+        .safe-to-spend-breakdown {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+        .safe-to-spend-sep {
+            opacity: 0.5;
+        }
+
         /* ─── Summary Cards ──────────────────────────────────── */
         .summary-cards {
             display: grid;
@@ -700,6 +748,21 @@
                 </div>
             </div>
         </header>
+
+        <!-- Safe to Spend -->
+        <div class="safe-to-spend {#if data.safeToSpendIsNegative}negative{/if}">
+            <div class="safe-to-spend-main">
+                <span class="safe-to-spend-label">Livre pra gastar até o fim do mês</span>
+                <span class="safe-to-spend-value">{data.safeToSpendFormatted}</span>
+            </div>
+            <div class="safe-to-spend-breakdown">
+                <span>Saldo contas do dia a dia: {data.spendableBalanceFormatted}</span>
+                <span class="safe-to-spend-sep">·</span>
+                <span>Gastos futuros conhecidos: -€{data.summary.spentFutureFormatted}</span>
+                <span class="safe-to-spend-sep">·</span>
+                <span>Recebimentos futuros esperados: +€{data.summary.receivedFutureFormatted}</span>
+            </div>
+        </div>
 
         <!-- Summary Cards -->
         <div class="summary-cards">
