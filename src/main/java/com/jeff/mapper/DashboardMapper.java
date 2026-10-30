@@ -62,6 +62,7 @@ public class DashboardMapper {
     private List<AccountDTO> buildAccounts(List<FireflyClient.Account> accounts) {
         if (accounts == null) return new ArrayList<>();
         return accounts.stream()
+                .filter(a -> !"Carteira de dinheiro".equals(a.name))
                 .map(a -> new AccountDTO(a.name, a.balance))
                 .sorted((a, b) -> b.balance.compareTo(a.balance))
                 .collect(Collectors.toList());
