@@ -956,7 +956,12 @@
                 function applySankeyTextStyle() {
                     if (applyingSankeyTextStyle) return;
                     applyingSankeyTextStyle = true;
-                    document.querySelectorAll('#sankey-chart text').forEach(el => {
+                    // The visible glyphs are painted by a <textPath> *inside* each <text>
+                    // (Plotly wraps node labels in textPath for curved/along-path layout),
+                    // and it carries its own explicit fill — which wins over anything set
+                    // on the parent <text>, important or not, since an element's own
+                    // declared value always beats an inherited one. Must style it directly.
+                    document.querySelectorAll('#sankey-chart text, #sankey-chart textPath').forEach(el => {
                         el.style.setProperty('fill', '#f8f8f8', 'important');
                         el.style.setProperty('stroke', 'none', 'important');
                         el.style.setProperty('text-shadow', 'none', 'important');
