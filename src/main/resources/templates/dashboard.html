@@ -871,8 +871,8 @@
 
                 let nodeIndex = 0;
 
-                // Node 0: "Renda Total" (sempre no meio)
-                labels.push('Renda Total  ' + fmt(sankeyData.totalIncome));
+                // Node 0: hub central (sem rótulo, só conecta entradas e saídas)
+                labels.push('');
                 colors.push('#51cf66'); // Verde
                 const totalNode = 0;
                 nodeIndex = 1;
@@ -881,7 +881,7 @@
                 const incomeStartNode = nodeIndex;
                 for (const category of sankeyData.incomeCategories) {
                     if (category.name && category.amount > 0) {
-                        labels.push('📥 ' + category.name + '  ' + fmt(category.amount));
+                        labels.push(category.name + '  ' + fmt(category.amount));
                         colors.push('#748ffc'); // Azul
                         // Ligação: Categoria Entrada → Renda Total
                         source.push(nodeIndex);
@@ -895,7 +895,7 @@
                 const expenseStartNode = nodeIndex;
                 for (const category of sankeyData.expenseCategories) {
                     if (category.name && category.amount > 0) {
-                        labels.push('💸 ' + category.name + '  ' + fmt(category.amount));
+                        labels.push(category.name + '  ' + fmt(category.amount));
                         colors.push('#ff6b6b'); // Vermelho
                         // Ligação: Renda Total → Categoria Despesa
                         source.push(totalNode);
