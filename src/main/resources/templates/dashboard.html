@@ -140,62 +140,71 @@
             transition: background 0.2s ease;
         }
 
-        /* ─── Safe to Spend ───────────────────────────────────── */
-        .safe-to-spend {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-            text-align: center;
+        /* ─── Monthly Flow ────────────────────────────────────── */
+        .flow-card {
             padding: 24px;
             margin-bottom: var(--gap);
             border-radius: var(--radius-lg);
-            background: rgba(81,207,102,0.08);
-            border: 1px solid rgba(81,207,102,0.25);
+            background: rgba(26, 26, 46, 0.75);
+            border: 1px solid var(--border);
             box-shadow: var(--shadow);
         }
-        .safe-to-spend.negative {
-            background: rgba(255,107,107,0.08);
-            border-color: rgba(255,107,107,0.25);
+        .flow-header {
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 20px;
+            text-align: center;
         }
-        .safe-to-spend-label {
+        .flow-label {
             font-size: 0.85rem;
             color: var(--text-secondary);
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.06em;
         }
-        .safe-to-spend-value {
-            display: block;
-            font-size: 2.6rem;
+        .flow-value {
+            font-size: 1.6rem;
             font-weight: 800;
             letter-spacing: -0.02em;
-            color: #51cf66;
-            line-height: 1.2;
         }
-        .safe-to-spend.negative .safe-to-spend-value {
-            color: #ff6b6b;
+        .flow-value.positive { color: #51cf66; }
+        .flow-value.negative { color: #ff6b6b; }
+
+        .flow-row {
+            display: grid;
+            grid-template-columns: 90px 1fr auto;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 10px;
         }
-        .safe-to-spend-breakdown {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 8px;
+        .flow-row:last-of-type {
+            margin-bottom: 0;
+        }
+        .flow-row-label {
             font-size: 0.78rem;
             color: var(--text-muted);
+            font-weight: 600;
         }
-        .safe-to-spend-sep {
-            opacity: 0.5;
-        }
-        .safe-to-spend-bar-container {
-            width: 100%;
-            max-width: 480px;
+        .flow-bar-track {
             height: 10px;
             background: rgba(45, 45, 68, 0.6);
             border-radius: 5px;
             overflow: hidden;
             display: flex;
-            margin: 14px 0 8px;
+        }
+        .flow-seg {
+            height: 100%;
+        }
+        .flow-received { background: linear-gradient(90deg, #51cf66, #69db7c); }
+        .flow-received-future { background: rgba(4,190,161,0.55); }
+        .flow-spent { background: linear-gradient(90deg, #ff6b6b, #ff8787); }
+        .flow-spent-future { background: rgba(255,169,77,0.65); }
+        .flow-balance-fill {
+            height: 100%;
+            display: flex;
+            overflow: hidden;
         }
         .safe-to-spend-bar-known {
             background: linear-gradient(90deg, #ff6b6b, #ff8787);
@@ -209,97 +218,25 @@
             background: linear-gradient(90deg, #51cf66, #69db7c);
             height: 100%;
         }
-        .safe-to-spend-legend {
+        .flow-row-value {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+        .flow-row-value.negative {
+            color: #ff6b6b;
+        }
+        .flow-row-value-future {
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        .flow-legend {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
             gap: 16px;
-            margin-top: 6px;
-        }
-
-        /* ─── Summary Cards ──────────────────────────────────── */
-        .summary-cards {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: var(--gap-sm);
-            margin-bottom: var(--gap);
-        }
-
-        .card {
-            background: rgba(26, 26, 46, 0.75);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
-            border-radius: var(--radius-lg);
-            border: 1px solid var(--border);
-            padding: 20px 16px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            text-align: center;
-            gap: 6px;
-            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-            background: var(--card-accent, var(--c-balance));
-        }
-
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 16px 48px rgba(0,0,0,0.7);
-            border-color: var(--border-hover);
-        }
-
-        .card-spent          { --card-accent: var(--c-spent);    }
-        .card-future         { --card-accent: var(--c-future);   }
-        .card-received       { --card-accent: var(--c-received); }
-        .card-received-future{ --card-accent: var(--c-income-f); }
-        .card-balance        { --card-accent: var(--c-balance);  }
-
-        .card-balance.positive { --card-accent: var(--c-received); }
-        .card-balance.negative { --card-accent: var(--c-spent);    }
-
-        .card-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.07);
-            border: 1px solid rgba(255,255,255,0.12);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            margin-bottom: 2px;
-            flex-shrink: 0;
-        }
-
-        .card-value {
-            font-size: 1.5rem;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            line-height: 1;
-            color: var(--card-accent, var(--c-balance));
-        }
-
-        .card-title {
-            font-size: 0.68rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-secondary);
-            font-weight: 600;
-        }
-
-        .card-subtitle {
-            font-size: 0.72rem;
-            color: var(--text-muted);
+            margin-top: 18px;
         }
 
         /* ─── Panel (shared base) ────────────────────────────── */
@@ -714,10 +651,6 @@
             .main-grid {
                 grid-template-columns: 1fr;
             }
-
-            .summary-cards {
-                grid-template-columns: repeat(3, 1fr);
-            }
         }
 
         @media (max-width: 768px) {
@@ -749,27 +682,13 @@
                 justify-content: center;
             }
 
-            .summary-cards {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
+            .flow-row {
+                grid-template-columns: 70px 1fr;
             }
 
-            .card-balance {
+            .flow-row-value {
                 grid-column: 1 / -1;
-            }
-
-            .card {
-                padding: 16px 12px;
-            }
-
-            .card-value {
-                font-size: 1.25rem;
-            }
-
-            .card-icon {
-                width: 38px;
-                height: 38px;
-                font-size: 1.1rem;
+                text-align: right;
             }
 
             .panel {
@@ -793,18 +712,8 @@
         }
 
         @media (max-width: 480px) {
-            .summary-cards {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .card-value {
-                font-size: 1.1rem;
-            }
-
-            .card-icon {
-                width: 34px;
-                height: 34px;
-                font-size: 1rem;
+            .flow-value {
+                font-size: 1.3rem;
             }
 
             .budget-pills {
@@ -837,93 +746,54 @@
             </div>
         </header>
 
-        <!-- Safe to Spend -->
-        <div class="safe-to-spend {#if data.safeToSpendIsNegative}negative{/if}">
-            <div class="safe-to-spend-main">
-                <span class="safe-to-spend-label">Livre pra gastar até o fim do mês</span>
-                <span class="safe-to-spend-value">{data.safeToSpendFormatted}</span>
-            </div>
-            <div class="safe-to-spend-bar-container">
-                {#if data.knownExpensePercentage > 0}
-                <div class="safe-to-spend-bar-known" style="flex-basis: {data.knownExpensePercentage}%"></div>
-                {/if}
-                {#if data.predictedExpensePercentage > 0}
-                <div class="safe-to-spend-bar-predicted" style="flex-basis: {data.predictedExpensePercentage}%"></div>
-                {/if}
-                {#if data.freePercentage > 0}
-                <div class="safe-to-spend-bar-free" style="flex-basis: {data.freePercentage}%"></div>
+        <!-- Monthly Flow -->
+        <div class="flow-card">
+            <div class="flow-header">
+                <span class="flow-label">Saldo Projetado do Mês</span>
+                {#if data.summary.isBalancePositive()}
+                <span class="flow-value positive">+€{data.summary.projectedBalanceFormatted}</span>
+                {#else}
+                <span class="flow-value negative">-€{data.summary.projectedBalanceFormatted}</span>
                 {/if}
             </div>
-            <div class="safe-to-spend-breakdown">
-                <span>Saldo contas do dia a dia: {data.spendableBalanceFormatted}</span>
-                <span class="safe-to-spend-sep">·</span>
-                <span>Gastos futuros conhecidos: -€{data.summary.spentFutureFormatted}</span>
-                {#if data.hasPredictedRecurring}
-                <span class="safe-to-spend-sep">·</span>
-                <span>Fixas previstas (ainda não lançadas): -{data.totalPredictedRecurringFormatted}</span>
-                {/if}
-                <span class="safe-to-spend-sep">·</span>
-                <span>Recebimentos futuros esperados: +€{data.summary.receivedFutureFormatted}</span>
-            </div>
-            {#if data.hasPredictedRecurring}
-            <div class="safe-to-spend-legend">
-                <div class="legend-item">
-                    <div class="legend-color" style="background:#ff6b6b"></div>
-                    <span>Conhecidos</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background:#748ffc"></div>
-                    <span>Previstos (fixas)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color" style="background:#51cf66"></div>
-                    <span>Livre</span>
-                </div>
-            </div>
-            {/if}
-        </div>
 
-        <!-- Summary Cards -->
-        <div class="summary-cards">
-            <div class="card card-spent">
-                <div class="card-icon">💸</div>
-                <div class="card-value">€{data.summary.spentNowFormatted}</div>
-                <div class="card-title">Gasto Até Agora</div>
-                <div class="card-subtitle">Transações passadas</div>
-            </div>
-            <div class="card card-future">
-                <div class="card-icon">🚀</div>
-                <div class="card-value">€{data.summary.spentFutureFormatted}</div>
-                <div class="card-title">Será Gasto</div>
-                <div class="card-subtitle">Transações futuras</div>
-            </div>
-            <div class="card card-received">
-                <div class="card-icon">📥</div>
-                <div class="card-value">€{data.summary.receivedNowFormatted}</div>
-                <div class="card-title">Recebido</div>
-                <div class="card-subtitle">Transações passadas</div>
-            </div>
-            <div class="card card-received-future">
-                <div class="card-icon">📈</div>
-                <div class="card-value">€{data.summary.receivedFutureFormatted}</div>
-                <div class="card-title">Será Recebido</div>
-                <div class="card-subtitle">Transações futuras</div>
-            </div>
-            {#if data.summary.isBalancePositive()}
-                <div class="card card-balance positive">
-                    <div class="card-icon">⚖️</div>
-                    <div class="card-value">+€{data.summary.projectedBalanceFormatted}</div>
-                    <div class="card-title">Saldo Projetado</div>
-                    <div class="card-subtitle">Superávit</div>
+            <div class="flow-row">
+                <span class="flow-row-label">Entradas</span>
+                <div class="flow-bar-track">
+                    {#if data.incomeNowPct > 0}<div class="flow-seg flow-received" style="width: {data.incomeNowPct}%"></div>{/if}
+                    {#if data.incomeFuturePct > 0}<div class="flow-seg flow-received-future" style="width: {data.incomeFuturePct}%"></div>{/if}
                 </div>
-            {#else}
-                <div class="card card-balance negative">
-                    <div class="card-icon">⚖️</div>
-                    <div class="card-value">-€{data.summary.projectedBalanceFormatted}</div>
-                    <div class="card-title">Saldo Projetado</div>
-                    <div class="card-subtitle">Déficit</div>
+                <span class="flow-row-value">€{data.summary.receivedNowFormatted} <span class="flow-row-value-future">+ €{data.summary.receivedFutureFormatted}</span></span>
+            </div>
+
+            <div class="flow-row">
+                <span class="flow-row-label">Saídas</span>
+                <div class="flow-bar-track">
+                    {#if data.expenseNowPct > 0}<div class="flow-seg flow-spent" style="width: {data.expenseNowPct}%"></div>{/if}
+                    {#if data.expenseFuturePct > 0}<div class="flow-seg flow-spent-future" style="width: {data.expenseFuturePct}%"></div>{/if}
                 </div>
-            {/if}
+                <span class="flow-row-value">€{data.summary.spentNowFormatted} <span class="flow-row-value-future">+ €{data.summary.spentFutureFormatted}</span></span>
+            </div>
+
+            <div class="flow-row">
+                <span class="flow-row-label">Saldo agora</span>
+                <div class="flow-bar-track">
+                    <div class="flow-balance-fill" style="width: {data.balanceBarPct}%">
+                        {#if data.knownExpensePercentage > 0}<div class="safe-to-spend-bar-known" style="flex-basis: {data.knownExpensePercentage}%"></div>{/if}
+                        {#if data.predictedExpensePercentage > 0}<div class="safe-to-spend-bar-predicted" style="flex-basis: {data.predictedExpensePercentage}%"></div>{/if}
+                        {#if data.freePercentage > 0}<div class="safe-to-spend-bar-free" style="flex-basis: {data.freePercentage}%"></div>{/if}
+                    </div>
+                </div>
+                <span class="flow-row-value {#if data.safeToSpendIsNegative}negative{/if}">{data.spendableBalanceFormatted} <span class="flow-row-value-future">· livre {data.safeToSpendFormatted}</span></span>
+            </div>
+
+            <div class="flow-legend">
+                <div class="legend-item"><div class="legend-color" style="background:#51cf66"></div><span>Recebido</span></div>
+                <div class="legend-item"><div class="legend-color" style="background:#04bea1;opacity:0.7"></div><span>Será Recebido</span></div>
+                <div class="legend-item"><div class="legend-color" style="background:#ff6b6b"></div><span>Gasto / Conhecido</span></div>
+                <div class="legend-item"><div class="legend-color" style="background:#ffa94d;opacity:0.7"></div><span>Será Gasto</span></div>
+                <div class="legend-item"><div class="legend-color" style="background:#748ffc"></div><span>Previsto (fixas)</span></div>
+            </div>
         </div>
 
         <!-- Main Two-Column Grid: Year Chart + Budgets -->

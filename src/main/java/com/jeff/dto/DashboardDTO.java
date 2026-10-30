@@ -171,6 +171,56 @@ public class DashboardDTO {
         return free < 0 ? 0 : free;
     }
 
+    /**
+     * Entradas, saídas e saldo disponível agora, todos na mesma escala — pra dar pra
+     * comparar visualmente "quanto entra/sai esse mês" com "quanto eu realmente tenho
+     * na mão agora", lado a lado, em vez de dois números soltos que parecem contradizer.
+     */
+    public BigDecimal getIncomeTotal() {
+        if (summary == null) return BigDecimal.ZERO;
+        BigDecimal now = summary.receivedNow != null ? summary.receivedNow : BigDecimal.ZERO;
+        BigDecimal future = summary.receivedFuture != null ? summary.receivedFuture : BigDecimal.ZERO;
+        return now.add(future);
+    }
+
+    public BigDecimal getExpenseTotal() {
+        if (summary == null) return BigDecimal.ZERO;
+        BigDecimal now = summary.spentNow != null ? summary.spentNow : BigDecimal.ZERO;
+        BigDecimal future = summary.spentFuture != null ? summary.spentFuture : BigDecimal.ZERO;
+        return now.add(future);
+    }
+
+    private BigDecimal getFlowScale() {
+        BigDecimal scale = getIncomeTotal().max(getExpenseTotal()).max(getSpendableBalance());
+        return scale.compareTo(BigDecimal.ZERO) > 0 ? scale : BigDecimal.ONE;
+    }
+
+    public double getIncomeNowPct() {
+        return pctOfScale(summary != null ? summary.receivedNow : null);
+    }
+
+    public double getIncomeFuturePct() {
+        return pctOfScale(summary != null ? summary.receivedFuture : null);
+    }
+
+    public double getExpenseNowPct() {
+        return pctOfScale(summary != null ? summary.spentNow : null);
+    }
+
+    public double getExpenseFuturePct() {
+        return pctOfScale(summary != null ? summary.spentFuture : null);
+    }
+
+    public double getBalanceBarPct() {
+        return pctOfScale(getSpendableBalance());
+    }
+
+    private double pctOfScale(BigDecimal value) {
+        if (value == null) return 0;
+        double p = value.doubleValue() / getFlowScale().doubleValue() * 100;
+        return p < 0 ? 0 : p;
+    }
+
     private String formatSigned(BigDecimal value) {
         String sign = value.compareTo(BigDecimal.ZERO) < 0 ? "-" : "";
         return sign + "€" + currencyFormatter.format(value.abs());
