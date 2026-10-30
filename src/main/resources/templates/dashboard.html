@@ -645,7 +645,7 @@
             <section class="panel panel-chart">
                 <h2 class="section-heading">
                     <span class="section-heading-accent"></span>
-                    Visão Anual: {data.yearProjectedBalance}
+                    Visão Anual: {data.yearProjectedBalanceFormatted}
                 </h2>
                 <div class="chart-legend">
                     <div class="legend-item">
@@ -945,15 +945,32 @@
                     plot_bgcolor: 'rgba(0,0,0,0)'
                 };
 
-                Plotly.newPlot('sankey-chart', data, layout, { responsive: true }).then(() => {
-                    // Plotly injects its own stylesheet (with !important) after ours,
-                    // winning the specificity tie — only an inline !important beats that.
-                    // It also inlines a 4-direction white text-shadow for legibility, which
-                    // on top of white fill just reads as a blurry halo — kill that too.
+                const sankeyChartEl = document.getElementById('sankey-chart');
+
+                // Plotly inlines fill/stroke/text-shadow on every label itself (with
+                // !important), so only an inline !important of our own can beat it — and
+                // responsive:true means Plotly redraws (and re-applies its own styling)
+                // on every resize/reflow, not just the first paint. A MutationObserver
+                // re-applies our styling every time Plotly touches the DOM again.
+                let applyingSankeyTextStyle = false;
+                function applySankeyTextStyle() {
+                    if (applyingSankeyTextStyle) return;
+                    applyingSankeyTextStyle = true;
                     document.querySelectorAll('#sankey-chart text').forEach(el => {
                         el.style.setProperty('fill', '#f8f8f8', 'important');
                         el.style.setProperty('stroke', 'none', 'important');
                         el.style.setProperty('text-shadow', 'none', 'important');
+                    });
+                    applyingSankeyTextStyle = false;
+                }
+
+                Plotly.newPlot('sankey-chart', data, layout, { responsive: true }).then(() => {
+                    applySankeyTextStyle();
+                    new MutationObserver(applySankeyTextStyle).observe(sankeyChartEl, {
+                        attributes: true,
+                        attributeFilter: ['style'],
+                        subtree: true,
+                        childList: true
                     });
                 });
             } catch (error) {

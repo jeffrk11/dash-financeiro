@@ -4,7 +4,10 @@ import com.jeff.client.MonthlyFinancialData;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 
 import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.util.List;
+import java.util.Locale;
 
 @RegisterForReflection
 public class DashboardDTO {
@@ -13,6 +16,9 @@ public class DashboardDTO {
     public SankeyDTO sankey;
     public List<MonthlyFinancialData> monthlyFinancialData;
     public BigDecimal yearProjectedBalance;
+
+    private static final DecimalFormat currencyFormatter =
+        new DecimalFormat("0.00", new DecimalFormatSymbols(new Locale("pt", "BR")));
 
     public DashboardDTO() {
         yearProjectedBalance = BigDecimal.ZERO;
@@ -36,6 +42,12 @@ public class DashboardDTO {
 
     public BigDecimal getYearProjectedBalance() {
         return yearProjectedBalance;
+    }
+
+    public String getYearProjectedBalanceFormatted() {
+        if (yearProjectedBalance == null) return "0,00";
+        String sign = yearProjectedBalance.compareTo(BigDecimal.ZERO) < 0 ? "-" : "";
+        return sign + "R$ " + currencyFormatter.format(yearProjectedBalance.abs());
     }
 
     public BigDecimal calculateYearBalance() {
