@@ -485,6 +485,24 @@
         }
         .pill-projected.status-over .pill-value { color: #ff6b6b; }
 
+        /* ─── Risk banner ────────────────────────────────────── */
+        .risk-banner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 18px;
+            margin-bottom: 16px;
+            border-radius: var(--radius-sm);
+            background: rgba(255,107,107,0.12);
+            border: 1px solid rgba(255,107,107,0.3);
+            color: var(--text-primary);
+            font-size: 0.85rem;
+        }
+        .risk-banner-icon {
+            font-size: 1.1rem;
+            flex-shrink: 0;
+        }
+
         /* ─── Budgets consolidated summary ──────────────────── */
         .budgets-summary {
             display: flex;
@@ -665,6 +683,17 @@
                 </div>
             </div>
         </header>
+
+        {#if data.hasAtRiskBudgets}
+        <div class="risk-banner">
+            <span class="risk-banner-icon">⚠️</span>
+            <span>
+                <strong>{data.atRiskBudgetCount}</strong>
+                {#if data.atRiskBudgetCount == 1}orçamento vai estourar{#else}orçamentos vão estourar{/if}
+                esse mês no ritmo atual: {data.atRiskBudgetNames}
+            </span>
+        </div>
+        {/if}
 
         <!-- Summary Cards -->
         <div class="summary-cards">

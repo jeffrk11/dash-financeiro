@@ -94,6 +94,34 @@ public class DashboardDTO {
         return "ok";
     }
 
+    public List<BudgetDTO> getAtRiskBudgets() {
+        List<BudgetDTO> atRisk = new java.util.ArrayList<>();
+        if (budgets == null) return atRisk;
+        for (BudgetDTO b : budgets) {
+            if (!"ok".equals(b.getProjectionStatus())) atRisk.add(b);
+        }
+        atRisk.sort((a, b) -> Double.compare(b.getProjectedPercentage(), a.getProjectedPercentage()));
+        return atRisk;
+    }
+
+    public int getAtRiskBudgetCount() {
+        return getAtRiskBudgets().size();
+    }
+
+    public boolean getHasAtRiskBudgets() {
+        return getAtRiskBudgetCount() > 0;
+    }
+
+    public String getAtRiskBudgetNames() {
+        StringBuilder sb = new StringBuilder();
+        List<BudgetDTO> atRisk = getAtRiskBudgets();
+        for (int i = 0; i < atRisk.size(); i++) {
+            if (i > 0) sb.append(i == atRisk.size() - 1 ? " e " : ", ");
+            sb.append(atRisk.get(i).getName());
+        }
+        return sb.toString();
+    }
+
     private BigDecimal sumBudgets(java.util.function.Function<BudgetDTO, BigDecimal> field) {
         if (budgets == null) return BigDecimal.ZERO;
         BigDecimal total = BigDecimal.ZERO;
