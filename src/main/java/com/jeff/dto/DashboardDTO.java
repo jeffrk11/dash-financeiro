@@ -13,6 +13,7 @@ import java.util.Locale;
 public class DashboardDTO {
     public SummaryDTO summary;
     public List<BudgetDTO> budgets;
+    public List<AccountDTO> accounts;
     public SankeyDTO sankey;
     public List<MonthlyFinancialData> monthlyFinancialData;
     public BigDecimal yearProjectedBalance;
@@ -38,6 +39,29 @@ public class DashboardDTO {
 
     public void setBudgets(List<BudgetDTO> budgets) {
         this.budgets = budgets;
+    }
+
+    public List<AccountDTO> getAccounts() {
+        return accounts;
+    }
+
+    public void setAccounts(List<AccountDTO> accounts) {
+        this.accounts = accounts;
+    }
+
+    public BigDecimal getTotalBalance() {
+        if (accounts == null) return BigDecimal.ZERO;
+        BigDecimal total = BigDecimal.ZERO;
+        for (AccountDTO a : accounts) {
+            if (a.balance != null) total = total.add(a.balance);
+        }
+        return total;
+    }
+
+    public String getTotalBalanceFormatted() {
+        BigDecimal total = getTotalBalance();
+        String sign = total.compareTo(BigDecimal.ZERO) < 0 ? "-" : "";
+        return sign + "R$ " + currencyFormatter.format(total.abs());
     }
 
     public BigDecimal getYearProjectedBalance() {

@@ -253,6 +253,58 @@
             gap: 14px;
         }
 
+        /* ─── Accounts ────────────────────────────────────────── */
+        .accounts-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 14px 18px;
+            margin-bottom: 14px;
+            border-radius: var(--radius-sm);
+            background: rgba(76,110,245,0.08);
+            border: 1px solid rgba(76,110,245,0.22);
+        }
+        .accounts-total-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .accounts-total-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .account-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 14px 16px;
+            border: 1px solid rgba(45, 45, 68, 0.6);
+            border-radius: var(--radius-sm);
+            background: rgba(255,255,255,0.015);
+        }
+        .account-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .account-balance {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #51cf66;
+        }
+        .account-balance.negative {
+            color: #ff6b6b;
+        }
+
         .panel-sankey {
             margin-bottom: 0;
         }
@@ -799,6 +851,28 @@
                         <span>Disponível</span>
                     </div>
                 </div>
+        </section>
+
+        <!-- Accounts -->
+        <section class="panel panel-accounts">
+            <h2 class="section-heading">
+                <span class="section-heading-accent"></span>
+                Contas
+            </h2>
+            {#if data.accounts}
+            <div class="accounts-total">
+                <span class="accounts-total-label">Patrimônio Total</span>
+                <span class="accounts-total-value">{data.totalBalanceFormatted}</span>
+            </div>
+            <div class="accounts-grid">
+                {#for account in data.accounts}
+                <div class="account-item">
+                    <span class="account-name">{account.name}</span>
+                    <span class="account-balance {#if account.isNegative}negative{/if}">{account.balanceFormatted}</span>
+                </div>
+                {/for}
+            </div>
+            {/if}
         </section>
 
         <!-- Sankey Diagram -->

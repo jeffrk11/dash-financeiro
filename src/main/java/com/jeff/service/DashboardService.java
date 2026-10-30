@@ -70,12 +70,13 @@ public class DashboardService {
 
             List<FireflyClient.Transaction> transactions = getMonthlyTransactions(startOfMonth, endOfMonth, currentSelection);
             List<MonthlyFinancialData> monthlyFinancialData = getYearlyData(currentSelection.getYear());
+            List<FireflyClient.Account> accounts = fireflyClient.getAccounts();
 
             return dashboardMapper.mapFromFirefly(
                     transactions,
                     budgetsList.stream()
                         .collect(Collectors.toMap(b -> b.name, b -> b)),
-                    today, monthlyFinancialData);
+                    today, monthlyFinancialData, accounts);
 
         } catch (Exception e) {
             System.err.println("Erro ao buscar dados do Firefly: " + e.getMessage());

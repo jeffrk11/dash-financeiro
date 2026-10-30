@@ -9,6 +9,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import com.jeff.client.FireflyClient;
+import com.jeff.dto.AccountDTO;
 import com.jeff.dto.BudgetDTO;
 import com.jeff.dto.CategoryDTO;
 import com.jeff.dto.DashboardDTO;
@@ -32,24 +33,38 @@ public class DashboardMapper {
             List<FireflyClient.Transaction> transactions,
             Map<String, FireflyClient.Budget> budgets,
             LocalDate referenceDate,
-            List<MonthlyFinancialData> monthlyFinancialData) {
+            List<MonthlyFinancialData> monthlyFinancialData,
+            List<FireflyClient.Account> accounts) {
         today = LocalDate.now();
-        
+
         LocalDate startOfMonth = referenceDate.withDayOfMonth(1);
          // Use sempre o dia de hoje, não a data de referência
-        
+
         SummaryDTO summary = buildSummary(transactions);
         List<BudgetDTO> budgetDTOs = buildBudgets(budgets, transactions);
         SankeyDTO sankey = buildSankey(transactions, startOfMonth);
-        
+        List<AccountDTO> accountDTOs = buildAccounts(accounts);
+
         DashboardDTO dto = new DashboardDTO();
         dto.summary = summary;
         dto.budgets = budgetDTOs;
         dto.sankey = sankey;
         dto.monthlyFinancialData = monthlyFinancialData;
         dto.yearProjectedBalance = dto.calculateYearBalance();
-        
+        dto.accounts = accountDTOs;
+
         return dto;
+    }
+
+    /**
+     * Mapeia as contas do Firefly, ordenadas por saldo decrescente.
+     */
+    private List<AccountDTO> buildAccounts(List<FireflyClient.Account> accounts) {
+        if (accounts == null) return new ArrayList<>();
+        return accounts.stream()
+                .map(a -> new AccountDTO(a.name, a.balance))
+                .sorted((a, b) -> b.balance.compareTo(a.balance))
+                .collect(Collectors.toList());
     }
 
     /**
