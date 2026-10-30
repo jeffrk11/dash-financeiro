@@ -187,20 +187,34 @@
         .safe-to-spend-sep {
             opacity: 0.5;
         }
-        .safe-to-spend-predicted-list {
+        .safe-to-spend-bar-container {
+            width: 100%;
+            max-width: 480px;
+            height: 10px;
+            background: rgba(45, 45, 68, 0.6);
+            border-radius: 5px;
+            overflow: hidden;
+            display: flex;
+            margin: 14px 0 8px;
+        }
+        .safe-to-spend-bar-known {
+            background: linear-gradient(90deg, #ff6b6b, #ff8787);
+            height: 100%;
+        }
+        .safe-to-spend-bar-predicted {
+            background: repeating-linear-gradient(45deg, #748ffc, #748ffc 4px, #667deb 4px, #667deb 8px);
+            height: 100%;
+        }
+        .safe-to-spend-bar-free {
+            background: linear-gradient(90deg, #51cf66, #69db7c);
+            height: 100%;
+        }
+        .safe-to-spend-legend {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: 6px;
-            margin-top: 10px;
-        }
-        .predicted-chip {
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            background: rgba(255,255,255,0.04);
-            border: 1px dashed rgba(255,255,255,0.15);
-            border-radius: 20px;
-            padding: 3px 10px;
+            gap: 16px;
+            margin-top: 6px;
         }
 
         /* ─── Summary Cards ──────────────────────────────────── */
@@ -829,6 +843,17 @@
                 <span class="safe-to-spend-label">Livre pra gastar até o fim do mês</span>
                 <span class="safe-to-spend-value">{data.safeToSpendFormatted}</span>
             </div>
+            <div class="safe-to-spend-bar-container">
+                {#if data.knownExpensePercentage > 0}
+                <div class="safe-to-spend-bar-known" style="flex-basis: {data.knownExpensePercentage}%"></div>
+                {/if}
+                {#if data.predictedExpensePercentage > 0}
+                <div class="safe-to-spend-bar-predicted" style="flex-basis: {data.predictedExpensePercentage}%"></div>
+                {/if}
+                {#if data.freePercentage > 0}
+                <div class="safe-to-spend-bar-free" style="flex-basis: {data.freePercentage}%"></div>
+                {/if}
+            </div>
             <div class="safe-to-spend-breakdown">
                 <span>Saldo contas do dia a dia: {data.spendableBalanceFormatted}</span>
                 <span class="safe-to-spend-sep">·</span>
@@ -841,10 +866,19 @@
                 <span>Recebimentos futuros esperados: +€{data.summary.receivedFutureFormatted}</span>
             </div>
             {#if data.hasPredictedRecurring}
-            <div class="safe-to-spend-predicted-list">
-                {#for item in data.predictedRecurring}
-                <span class="predicted-chip">{item.name}: ~{item.amountFormatted}</span>
-                {/for}
+            <div class="safe-to-spend-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#ff6b6b"></div>
+                    <span>Conhecidos</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#748ffc"></div>
+                    <span>Previstos (fixas)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background:#51cf66"></div>
+                    <span>Livre</span>
+                </div>
             </div>
             {/if}
         </div>

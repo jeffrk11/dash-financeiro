@@ -151,6 +151,26 @@ public class DashboardDTO {
         return getSafeToSpend().compareTo(BigDecimal.ZERO) < 0;
     }
 
+    /** % do saldo do dia a dia já comprometido com gastos futuros conhecidos (barra, igual ao orçamento). */
+    public double getKnownExpensePercentage() {
+        BigDecimal base = getSpendableBalance();
+        if (base.compareTo(BigDecimal.ZERO) <= 0 || summary == null || summary.spentFuture == null) return 0;
+        return summary.spentFuture.doubleValue() / base.doubleValue() * 100;
+    }
+
+    /** % do saldo comprometido com a estimativa de fixas que ainda não chegaram. */
+    public double getPredictedExpensePercentage() {
+        BigDecimal base = getSpendableBalance();
+        if (base.compareTo(BigDecimal.ZERO) <= 0) return 0;
+        return getTotalPredictedRecurring().doubleValue() / base.doubleValue() * 100;
+    }
+
+    /** % do saldo que sobra livre depois dos dois acima. */
+    public double getFreePercentage() {
+        double free = 100 - getKnownExpensePercentage() - getPredictedExpensePercentage();
+        return free < 0 ? 0 : free;
+    }
+
     private String formatSigned(BigDecimal value) {
         String sign = value.compareTo(BigDecimal.ZERO) < 0 ? "-" : "";
         return sign + "€" + currencyFormatter.format(value.abs());
