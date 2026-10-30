@@ -397,6 +397,14 @@
             transition: flex-basis 0.4s ease;
         }
 
+        /* Orçamento inverso (reserva/investimento): guardar é bom, faltar é ruim — cores trocadas. */
+        .budget-bar-container.inverse .budget-bar-spent {
+            background: linear-gradient(90deg, #51cf66, #69db7c);
+        }
+        .budget-bar-container.inverse .budget-bar-available {
+            background: linear-gradient(90deg, #ff6b6b, #ff8787);
+        }
+
         /* ─── Budget Pills ───────────────────────────────────── */
         .budget-pills {
             display: flex;
@@ -445,6 +453,18 @@
             border-color: rgba(81,207,102,0.25);
         }
         .pill-available .pill-value { color: var(--c-received); }
+
+        /* Orçamento inverso (reserva/investimento): guardado = bom (verde), falta p/ meta = ruim (vermelho). */
+        .pill-spent.inverse {
+            background: rgba(81,207,102,0.1);
+            border-color: rgba(81,207,102,0.25);
+        }
+        .pill-spent.inverse .pill-value { color: var(--c-received); }
+        .pill-available.inverse {
+            background: rgba(255,107,107,0.1);
+            border-color: rgba(255,107,107,0.25);
+        }
+        .pill-available.inverse .pill-value { color: var(--c-spent); }
 
         /* ─── Projection (run-rate) ──────────────────────────── */
         .budget-status-dot {
@@ -790,7 +810,7 @@
                                 <span class="budget-name"><span class="budget-status-dot status-{budget.projectionStatus}"></span>{budget.name}</span>
                                 <span class="budget-total-badge">R$ {budget.totalFormatted}</span>
                             </div>
-                            <div class="budget-bar-container">
+                            <div class="budget-bar-container {#if budget.inverse}inverse{/if}">
                                 {#if budget.getSpentPercentage() > 0}
                                     <div class="budget-bar-spent" style="flex-basis: {budget.getSpentPercentage()}%"></div>
                                 {/if}
@@ -802,16 +822,16 @@
                                 {/if}
                             </div>
                             <div class="budget-pills">
-                                <span class="pill pill-spent">
-                                    <span class="pill-label">Gasto</span>
+                                <span class="pill pill-spent {#if budget.inverse}inverse{/if}">
+                                    <span class="pill-label">{#if budget.inverse}Guardado{#else}Gasto{/if}</span>
                                     <span class="pill-value">R$ {budget.spentFormatted}</span>
                                 </span>
                                 <span class="pill pill-future">
                                     <span class="pill-label">Futuro</span>
                                     <span class="pill-value">R$ {budget.futureFormatted}</span>
                                 </span>
-                                <span class="pill pill-available">
-                                    <span class="pill-label">Disponível</span>
+                                <span class="pill pill-available {#if budget.inverse}inverse{/if}">
+                                    <span class="pill-label">{#if budget.inverse}Falta p/ meta{#else}Disponível{/if}</span>
                                     <span class="pill-value">R$ {budget.availableFormatted}</span>
                                 </span>
                                 <span class="pill pill-projected status-{budget.projectionStatus}">
@@ -820,7 +840,7 @@
                                 </span>
                             </div>
                             {#if budget.hasHistory}
-                            <div class="budget-trend trend-{budget.trendDirection}">
+                            <div class="budget-trend {budget.trendStatusClass}">
                                 Média 3m: R$ {budget.historicalAverageFormatted} · {budget.trendPercentageRounded}% do ritmo normal
                             </div>
                             {/if}

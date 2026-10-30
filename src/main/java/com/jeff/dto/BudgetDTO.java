@@ -16,6 +16,8 @@ public class BudgetDTO {
     public BigDecimal available;
     public BigDecimal projected;
     public BigDecimal historicalAverage;
+    /** Orçamento de meta inversa (reserva/investimento): o objetivo é ATINGIR o valor, não ficar abaixo dele. */
+    public boolean inverse;
 
     private static final DecimalFormat currencyFormatter = 
         new DecimalFormat("0.00", new DecimalFormatSymbols(new Locale("pt", "BR")));
@@ -126,9 +128,28 @@ public class BudgetDTO {
         return projected.doubleValue() / total.doubleValue() * 100;
     }
 
-    /** "ok" (on track), "warning" (will come close, 90-100%), "over" (will blow past 100%). */
+    public boolean getInverse() {
+        return inverse;
+    }
+
+    public void setInverse(boolean inverse) {
+        this.inverse = inverse;
+    }
+
+    /**
+     * "ok" (on track), "warning" (close), "over" (bad state) — same three strings for
+     * both kinds so the dot/pill CSS stays one set of classes, but what they MEAN flips:
+     * normal budget: over = spent too much (>100%). warning = 90-100%.
+     * inverse budget (reserva/investimento): over = will fall short of the goal (<80%
+     * projected). warning = 80-100%, not quite there yet. ok = met or beat the goal.
+     */
     public String getProjectionStatus() {
         double pct = getProjectedPercentage();
+        if (inverse) {
+            if (pct >= 100) return "ok";
+            if (pct >= 80) return "warning";
+            return "over";
+        }
         if (pct > 100) return "over";
         if (pct >= 90) return "warning";
         return "ok";
@@ -156,12 +177,25 @@ public class BudgetDTO {
         return projected.doubleValue() / historicalAverage.doubleValue() * 100;
     }
 
-    /** "up" (acima da média), "down" (abaixo), "flat" (parecido, dentro de ±10%). */
+    /** "up" (acima da média), "down" (abaixo), "flat" (parecido, dentro de ±10%) — direção pura, sem julgamento. */
     public String getTrendDirection() {
         double pct = getTrendPercentage();
         if (pct > 110) return "up";
         if (pct < 90) return "down";
         return "flat";
+    }
+
+    /**
+     * Classe CSS pra colorir a tendência (reaproveita trend-up=vermelho/trend-down=verde
+     * já existentes no CSS). Num orçamento normal, acima da média é ruim (vermelho).
+     * Num orçamento inverso (reserva/investimento), acima da média é bom — inverte.
+     */
+    public String getTrendStatusClass() {
+        String dir = getTrendDirection();
+        if (!inverse) return "trend-" + dir;
+        if ("up".equals(dir)) return "trend-down";
+        if ("down".equals(dir)) return "trend-up";
+        return "trend-flat";
     }
 
     public long getTrendPercentageRounded() {
