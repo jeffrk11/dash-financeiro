@@ -18,6 +18,7 @@ import java.util.stream.IntStream;
 import com.jeff.client.FireflyClient;
 import com.jeff.dto.DashboardDTO;
 import com.jeff.dto.BudgetDTO;
+import com.jeff.dto.SankeyDTO;
 import com.jeff.dto.SummaryDTO;
 import com.jeff.mapper.DashboardMapper;
 import org.slf4j.Logger;
@@ -39,8 +40,7 @@ public class DashboardService {
     public DashboardDTO getDashboard(String month) {
         try {
             LocalDate today = LocalDate.now();
-            YearMonth currentSelection = YearMonth.parse(month);
-            
+
             // Se um mês foi especificado, usa ele, senão usa o mês atual
             if (month != null && !month.isEmpty()) {
                 String[] parts = month.split("-");
@@ -50,7 +50,9 @@ public class DashboardService {
                     today = LocalDate.of(year, monthValue, 1);
                 }
             }
-            
+
+            YearMonth currentSelection = YearMonth.from(today);
+
             // Calcula as datas do mês especificado
             LocalDate startOfMonth = today.withDayOfMonth(1);
             LocalDate endOfMonth = today.withDayOfMonth(today.lengthOfMonth());
@@ -151,6 +153,8 @@ public class DashboardService {
         DashboardDTO dto = new DashboardDTO();
         dto.summary = summary;
         dto.budgets = List.of(food, transport);
+        dto.sankey = new SankeyDTO(BigDecimal.ZERO, List.of(), List.of());
+        dto.monthlyFinancialData = new ArrayList<>();
 
         return dto;
     }
