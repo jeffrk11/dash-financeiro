@@ -236,29 +236,21 @@
             box-shadow: var(--shadow);
         }
 
-        /* ─── Main Two-Column Grid ───────────────────────────── */
+        /* ─── Year Chart Row ──────────────────────────────────── */
         .main-grid {
             display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: var(--gap);
+            grid-template-columns: 1fr;
             margin-bottom: var(--gap);
-            align-items: start;
         }
 
         .panel-budgets {
-            position: sticky;
-            top: calc(64px + 24px);
-            max-height: calc(100vh - 128px);
-            display: flex;
-            flex-direction: column;
+            margin-bottom: var(--gap);
         }
 
-        .budgets-scroll {
-            overflow-y: auto;
-            flex: 1;
-            scrollbar-width: thin;
-            scrollbar-color: var(--border) transparent;
-            padding-right: 4px;
+        .budgets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 14px;
         }
 
         .panel-sankey {
@@ -344,12 +336,10 @@
         }
 
         .budget-item {
-            padding: 14px 0;
-            border-bottom: 1px solid rgba(45, 45, 68, 0.6);
-        }
-
-        .budget-item:last-of-type {
-            border-bottom: none;
+            padding: 16px;
+            border: 1px solid rgba(45, 45, 68, 0.6);
+            border-radius: var(--radius-sm);
+            background: rgba(255,255,255,0.015);
         }
 
         .budget-item-header {
@@ -557,17 +547,6 @@
         @media (max-width: 1100px) {
             .main-grid {
                 grid-template-columns: 1fr;
-            }
-
-            .panel-budgets {
-                position: static;
-                max-height: none;
-                overflow: visible;
-            }
-
-            .budgets-scroll {
-                overflow: visible;
-                max-height: none;
             }
 
             .summary-cards {
@@ -782,8 +761,10 @@
                 </div>
             </section>
 
-            <!-- Budgets Sidebar -->
-            <section class="panel panel-budgets">
+        </div>
+
+        <!-- Budgets -->
+        <section class="panel panel-budgets">
                 <h2 class="section-heading">
                     <span class="section-heading-accent"></span>
                     Orçamentos
@@ -802,7 +783,7 @@
                         <span class="budgets-summary-value">{data.totalFreeFormatted}</span>
                     </div>
                 </div>
-                <div class="budgets-scroll">
+                <div class="budgets-grid">
                     {#for budget in data.budgets}
                         <div class="budget-item">
                             <div class="budget-item-header">
@@ -860,9 +841,7 @@
                         <span>Disponível</span>
                     </div>
                 </div>
-            </section>
-
-        </div>
+        </section>
 
         <!-- Sankey Diagram -->
         <section class="panel panel-sankey">
