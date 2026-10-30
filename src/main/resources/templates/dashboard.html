@@ -503,6 +503,14 @@
             flex-shrink: 0;
         }
 
+        .budget-trend {
+            margin-top: 8px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        .budget-trend.trend-up { color: #ff8787; }
+        .budget-trend.trend-down { color: #69db7c; }
+
         /* ─── Budgets consolidated summary ──────────────────── */
         .budgets-summary {
             display: flex;
@@ -830,6 +838,11 @@
                                     <span class="pill-value">R$ {budget.projectedFormatted}</span>
                                 </span>
                             </div>
+                            {#if budget.hasHistory}
+                            <div class="budget-trend trend-{budget.trendDirection}">
+                                Média 3m: R$ {budget.historicalAverageFormatted} · {budget.trendPercentageRounded}% do ritmo normal
+                            </div>
+                            {/if}
                         </div>
                     {/for}
                 </div>

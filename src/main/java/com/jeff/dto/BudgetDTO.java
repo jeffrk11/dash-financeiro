@@ -15,6 +15,7 @@ public class BudgetDTO {
     public BigDecimal future;
     public BigDecimal available;
     public BigDecimal projected;
+    public BigDecimal historicalAverage;
 
     private static final DecimalFormat currencyFormatter = 
         new DecimalFormat("0.00", new DecimalFormatSymbols(new Locale("pt", "BR")));
@@ -131,6 +132,40 @@ public class BudgetDTO {
         if (pct > 100) return "over";
         if (pct >= 90) return "warning";
         return "ok";
+    }
+
+    public BigDecimal getHistoricalAverage() {
+        return historicalAverage;
+    }
+
+    public void setHistoricalAverage(BigDecimal historicalAverage) {
+        this.historicalAverage = historicalAverage;
+    }
+
+    public String getHistoricalAverageFormatted() {
+        return historicalAverage != null ? currencyFormatter.format(historicalAverage) : "0,00";
+    }
+
+    public boolean getHasHistory() {
+        return historicalAverage != null && historicalAverage.compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    /** Projeção deste mês vs. a média dos últimos meses, em %. Ex: 130 = gastando 30% a mais que o normal. */
+    public double getTrendPercentage() {
+        if (!getHasHistory() || projected == null) return 100;
+        return projected.doubleValue() / historicalAverage.doubleValue() * 100;
+    }
+
+    /** "up" (acima da média), "down" (abaixo), "flat" (parecido, dentro de ±10%). */
+    public String getTrendDirection() {
+        double pct = getTrendPercentage();
+        if (pct > 110) return "up";
+        if (pct < 90) return "down";
+        return "flat";
+    }
+
+    public long getTrendPercentageRounded() {
+        return Math.round(getTrendPercentage());
     }
 }
 

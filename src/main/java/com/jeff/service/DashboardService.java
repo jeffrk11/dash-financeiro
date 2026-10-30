@@ -65,6 +65,7 @@ public class DashboardService {
                     budget.currentMonthSpent = limit.spent;
                     log.info("Budget " + budget.name + " - Gasto no período: €" + limit.spent + " / €" + limit.amount);
                 }
+                budget.historicalAverage = fireflyClient.getAverageSpentLastMonths(budget.id, YearMonth.from(today), 3);
             }
 
 

@@ -177,6 +177,7 @@ public class DashboardMapper {
                 dto.total = budget.budgeted;
                 dto.available = dto.total.subtract(dto.spent).subtract(dto.future);
                 dto.available = dto.available.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : dto.available;
+                dto.historicalAverage = budget.historicalAverage;
             }
             if (elapsedRatio.compareTo(BigDecimal.ZERO) > 0) {
                 dto.projected = dto.spent.divide(elapsedRatio, 2, RoundingMode.HALF_UP);
