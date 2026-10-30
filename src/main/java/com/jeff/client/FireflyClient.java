@@ -313,8 +313,12 @@ public class FireflyClient {
                         if (attributes.has("current_balance") && !attributes.get("current_balance").isNull()) {
                             balance = new BigDecimal(attributes.get("current_balance").asText("0.00"));
                         }
-                        
-                        accounts.add(new Account(id, name, type, balance));
+
+                        Account account = new Account(id, name, type, balance);
+                        if (attributes.has("virtual_balance") && !attributes.get("virtual_balance").isNull()) {
+                            account.virtualBalance = new BigDecimal(attributes.get("virtual_balance").asText("0.00"));
+                        }
+                        accounts.add(account);
                     }
                 }
             }
@@ -402,6 +406,8 @@ public class FireflyClient {
         public String name;
         public String type;
         public BigDecimal balance;
+        /** Pra contas de cartão de crédito: usamos esse campo como "limite" (truque, já que o Firefly não tem campo nativo de limite). */
+        public BigDecimal virtualBalance;
 
         public Account() {}
         public Account(String id, String name, String type, BigDecimal balance) {

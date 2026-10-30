@@ -352,6 +352,10 @@
         .account-balance.negative {
             color: #ff6b6b;
         }
+        .account-limit {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+        }
 
         /* ─── Debts ───────────────────────────────────────────── */
         .debts-total {
@@ -987,6 +991,9 @@
                 <div class="account-item">
                     <span class="account-name">{account.name}</span>
                     <span class="account-balance {#if account.isNegative}negative{/if}">{account.balanceFormatted}</span>
+                    {#if account.hasLimit}
+                    <span class="account-limit">Disponível: {account.availableFormatted} de {account.limitFormatted}</span>
+                    {/if}
                 </div>
                 {/for}
             </div>

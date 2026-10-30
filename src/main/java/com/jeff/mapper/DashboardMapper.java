@@ -73,6 +73,7 @@ public class DashboardMapper {
                     dto.reserve = lowerName.contains("poupança") || lowerName.contains("poupanca")
                             || lowerName.contains("reserva") || lowerName.contains("invest")
                             || lowerName.contains("trade republic");
+                    dto.limit = a.virtualBalance;
                     return dto;
                 })
                 .sorted((a, b) -> b.balance.compareTo(a.balance))
