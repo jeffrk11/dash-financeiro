@@ -332,7 +332,7 @@ public class FireflyClient {
                             if (ocurrencesArray != null && ocurrencesArray.isArray()) {
                                 for (JsonNode occurrence : ocurrencesArray) {
                                     date = LocalDate.parse(occurrence.asText().substring(0, 10));
-                                     if(date.getMonth().compareTo(currentSelection.getMonth()) == 0) {
+                                     if(YearMonth.from(date).equals(currentSelection)) {
                                          validRecurrence = true;
                                          break;
                                     }
