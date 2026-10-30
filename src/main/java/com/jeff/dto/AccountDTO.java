@@ -33,7 +33,7 @@ public class AccountDTO {
     public String getBalanceFormatted() {
         if (balance == null) return "0,00";
         String sign = balance.compareTo(BigDecimal.ZERO) < 0 ? "-" : "";
-        return sign + "R$ " + currencyFormatter.format(balance.abs());
+        return sign + "€" + currencyFormatter.format(balance.abs());
     }
 
     public boolean getIsNegative() {

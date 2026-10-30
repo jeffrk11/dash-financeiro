@@ -61,7 +61,7 @@ public class DashboardDTO {
     public String getTotalBalanceFormatted() {
         BigDecimal total = getTotalBalance();
         String sign = total.compareTo(BigDecimal.ZERO) < 0 ? "-" : "";
-        return sign + "R$ " + currencyFormatter.format(total.abs());
+        return sign + "€" + currencyFormatter.format(total.abs());
     }
 
     public BigDecimal getYearProjectedBalance() {
@@ -71,7 +71,7 @@ public class DashboardDTO {
     public String getYearProjectedBalanceFormatted() {
         if (yearProjectedBalance == null) return "0,00";
         String sign = yearProjectedBalance.compareTo(BigDecimal.ZERO) < 0 ? "-" : "";
-        return sign + "R$ " + currencyFormatter.format(yearProjectedBalance.abs());
+        return sign + "€" + currencyFormatter.format(yearProjectedBalance.abs());
     }
 
     public BigDecimal getTotalBudgeted() {
@@ -79,7 +79,7 @@ public class DashboardDTO {
     }
 
     public String getTotalBudgetedFormatted() {
-        return "R$ " + currencyFormatter.format(getTotalBudgeted());
+        return "€" + currencyFormatter.format(getTotalBudgeted());
     }
 
     public BigDecimal getTotalSpent() {
@@ -87,7 +87,7 @@ public class DashboardDTO {
     }
 
     public String getTotalSpentFormatted() {
-        return "R$ " + currencyFormatter.format(getTotalSpent());
+        return "€" + currencyFormatter.format(getTotalSpent());
     }
 
     /** Quanto ainda sobra pra gastar nos orçamentos definidos, sem contar o que já ficou pra trás (gasto + futuro já lançado). */
@@ -97,7 +97,7 @@ public class DashboardDTO {
     }
 
     public String getTotalFreeFormatted() {
-        return "R$ " + currencyFormatter.format(getTotalFree());
+        return "€" + currencyFormatter.format(getTotalFree());
     }
 
     /** "ok" / "warning" / "over", com base no gasto somado de todos os orçamentos vs. o total orçado. */

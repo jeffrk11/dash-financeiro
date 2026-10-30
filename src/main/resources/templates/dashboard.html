@@ -276,7 +276,7 @@
         }
         .accounts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
             gap: 12px;
         }
         .account-item {
@@ -705,39 +705,39 @@
         <div class="summary-cards">
             <div class="card card-spent">
                 <div class="card-icon">💸</div>
-                <div class="card-value">R$ {data.summary.spentNowFormatted}</div>
+                <div class="card-value">€{data.summary.spentNowFormatted}</div>
                 <div class="card-title">Gasto Até Agora</div>
                 <div class="card-subtitle">Transações passadas</div>
             </div>
             <div class="card card-future">
                 <div class="card-icon">🚀</div>
-                <div class="card-value">R$ {data.summary.spentFutureFormatted}</div>
+                <div class="card-value">€{data.summary.spentFutureFormatted}</div>
                 <div class="card-title">Será Gasto</div>
                 <div class="card-subtitle">Transações futuras</div>
             </div>
             <div class="card card-received">
                 <div class="card-icon">📥</div>
-                <div class="card-value">R$ {data.summary.receivedNowFormatted}</div>
+                <div class="card-value">€{data.summary.receivedNowFormatted}</div>
                 <div class="card-title">Recebido</div>
                 <div class="card-subtitle">Transações passadas</div>
             </div>
             <div class="card card-received-future">
                 <div class="card-icon">📈</div>
-                <div class="card-value">R$ {data.summary.receivedFutureFormatted}</div>
+                <div class="card-value">€{data.summary.receivedFutureFormatted}</div>
                 <div class="card-title">Será Recebido</div>
                 <div class="card-subtitle">Transações futuras</div>
             </div>
             {#if data.summary.isBalancePositive()}
                 <div class="card card-balance positive">
                     <div class="card-icon">⚖️</div>
-                    <div class="card-value">+R$ {data.summary.projectedBalanceFormatted}</div>
+                    <div class="card-value">+€{data.summary.projectedBalanceFormatted}</div>
                     <div class="card-title">Saldo Projetado</div>
                     <div class="card-subtitle">Superávit</div>
                 </div>
             {#else}
                 <div class="card card-balance negative">
                     <div class="card-icon">⚖️</div>
-                    <div class="card-value">-R$ {data.summary.projectedBalanceFormatted}</div>
+                    <div class="card-value">-€{data.summary.projectedBalanceFormatted}</div>
                     <div class="card-title">Saldo Projetado</div>
                     <div class="card-subtitle">Déficit</div>
                 </div>
@@ -807,7 +807,7 @@
                         <div class="budget-item">
                             <div class="budget-item-header">
                                 <span class="budget-name"><span class="budget-status-dot status-{budget.status}"></span>{budget.name}</span>
-                                <span class="budget-total-badge">R$ {budget.totalFormatted}</span>
+                                <span class="budget-total-badge">€{budget.totalFormatted}</span>
                             </div>
                             <div class="budget-bar-container {#if budget.inverse}inverse{/if}">
                                 {#if budget.getSpentPercentage() > 0}
@@ -823,15 +823,15 @@
                             <div class="budget-pills">
                                 <span class="pill pill-spent {#if budget.inverse}inverse{/if}">
                                     <span class="pill-label">{#if budget.inverse}Guardado{#else}Gasto{/if}</span>
-                                    <span class="pill-value">R$ {budget.spentFormatted}</span>
+                                    <span class="pill-value">€{budget.spentFormatted}</span>
                                 </span>
                                 <span class="pill pill-future">
                                     <span class="pill-label">Futuro</span>
-                                    <span class="pill-value">R$ {budget.futureFormatted}</span>
+                                    <span class="pill-value">€{budget.futureFormatted}</span>
                                 </span>
                                 <span class="pill pill-available {#if budget.inverse}inverse{/if}">
                                     <span class="pill-label">{#if budget.inverse}Falta p/ meta{#else}Disponível{/if}</span>
-                                    <span class="pill-value">R$ {budget.availableFormatted}</span>
+                                    <span class="pill-value">€{budget.availableFormatted}</span>
                                 </span>
                             </div>
                         </div>
@@ -1191,7 +1191,7 @@
                             color: '#7a7a99',
                             font: ctx => ({ size: ctx.chart.width < 500 ? 9 : 12 }),
                             maxTicksLimit: 6,
-                            callback: v => 'R$' + (v/1000).toFixed(0) + 'k'
+                            callback: v => '€' + (v/1000).toFixed(0) + 'k'
                         },
                         grid: { color: 'rgba(255,255,255,0.06)' }
                     }
