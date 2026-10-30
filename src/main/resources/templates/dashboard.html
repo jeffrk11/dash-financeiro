@@ -485,6 +485,48 @@
         }
         .pill-projected.status-over .pill-value { color: #ff6b6b; }
 
+        /* ─── Budgets consolidated summary ──────────────────── */
+        .budgets-summary {
+            display: flex;
+            gap: 10px;
+            padding: 12px;
+            margin-bottom: 14px;
+            border-radius: var(--radius-sm);
+            background: rgba(81,207,102,0.08);
+            border: 1px solid rgba(81,207,102,0.2);
+        }
+        .budgets-summary.status-warning {
+            background: rgba(255,212,59,0.1);
+            border-color: rgba(255,212,59,0.25);
+        }
+        .budgets-summary.status-over {
+            background: rgba(255,107,107,0.1);
+            border-color: rgba(255,107,107,0.25);
+        }
+        .budgets-summary-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .budgets-summary-label {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        .budgets-summary-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .budgets-summary-free .budgets-summary-value {
+            color: #51cf66;
+        }
+        .budgets-summary.status-warning .budgets-summary-free .budgets-summary-value { color: #ffd43b; }
+        .budgets-summary.status-over .budgets-summary-free .budgets-summary-value { color: #ff6b6b; }
+
         /* ─── Responsive ─────────────────────────────────────── */
         @media (max-width: 1100px) {
             .main-grid {
@@ -709,6 +751,20 @@
                     <span class="section-heading-accent"></span>
                     Orçamentos
                 </h2>
+                <div class="budgets-summary status-{data.totalProjectionStatus}">
+                    <div class="budgets-summary-item">
+                        <span class="budgets-summary-label">Orçado</span>
+                        <span class="budgets-summary-value">{data.totalBudgetedFormatted}</span>
+                    </div>
+                    <div class="budgets-summary-item">
+                        <span class="budgets-summary-label">Gasto</span>
+                        <span class="budgets-summary-value">{data.totalSpentFormatted}</span>
+                    </div>
+                    <div class="budgets-summary-item budgets-summary-free">
+                        <span class="budgets-summary-label">Livre pra gastar</span>
+                        <span class="budgets-summary-value">{data.totalFreeFormatted}</span>
+                    </div>
+                </div>
                 <div class="budgets-scroll">
                     {#for budget in data.budgets}
                         <div class="budget-item">
