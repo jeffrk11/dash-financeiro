@@ -4,9 +4,7 @@ import com.aayushatharva.brotli4j.common.annotations.Local;
 import com.jeff.client.MonthlyFinancialData;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.YearMonth;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -41,7 +39,7 @@ public class DashboardMapper {
          // Use sempre o dia de hoje, não a data de referência
         
         SummaryDTO summary = buildSummary(transactions);
-        List<BudgetDTO> budgetDTOs = buildBudgets(budgets, transactions, startOfMonth);
+        List<BudgetDTO> budgetDTOs = buildBudgets(budgets, transactions);
         SankeyDTO sankey = buildSankey(transactions, startOfMonth);
         
         DashboardDTO dto = new DashboardDTO();
@@ -108,8 +106,7 @@ public class DashboardMapper {
      * Constrói os orçamentos a partir dos dados do Firefly
      */
     private List<BudgetDTO> buildBudgets(Map<String ,FireflyClient.Budget> budgets,
-                                         List<FireflyClient.Transaction> transactions,
-                                         LocalDate startOfMonth) {
+                                         List<FireflyClient.Transaction> transactions) {
 
         Map<String, BudgetDTO> budgetMap = new HashMap<>();
 
@@ -158,33 +155,12 @@ public class DashboardMapper {
             }
         }
 
-        // Ritmo do mês visualizado: quanto dele já passou, pra projetar o gasto até o fim.
-        // Mês passado = 100% (sem extrapolar, "projetado" = o que já foi gasto de fato).
-        // Mês futuro = 0% (ainda não começou, nada a projetar).
-        YearMonth viewedMonth = YearMonth.from(startOfMonth);
-        YearMonth currentMonth = YearMonth.from(today);
-        BigDecimal elapsedRatio;
-        if (viewedMonth.isBefore(currentMonth)) {
-            elapsedRatio = BigDecimal.ONE;
-        } else if (viewedMonth.isAfter(currentMonth)) {
-            elapsedRatio = BigDecimal.ZERO;
-        } else {
-            elapsedRatio = BigDecimal.valueOf(today.getDayOfMonth())
-                    .divide(BigDecimal.valueOf(viewedMonth.lengthOfMonth()), 6, RoundingMode.HALF_UP);
-        }
-
         budgetMap.forEach((name, dto) -> {
             FireflyClient.Budget budget = budgets.get(name);
             if (budget != null) {
                 dto.total = budget.budgeted;
                 dto.available = dto.total.subtract(dto.spent).subtract(dto.future);
                 dto.available = dto.available.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : dto.available;
-                dto.historicalAverage = budget.historicalAverage;
-            }
-            if (elapsedRatio.compareTo(BigDecimal.ZERO) > 0) {
-                dto.projected = dto.spent.divide(elapsedRatio, 2, RoundingMode.HALF_UP);
-            } else {
-                dto.projected = dto.spent;
             }
         });
 

@@ -66,14 +66,6 @@ public class DashboardDTO {
         return "R$ " + currencyFormatter.format(getTotalSpent());
     }
 
-    public BigDecimal getTotalProjected() {
-        return sumBudgets(BudgetDTO::getProjected);
-    }
-
-    public String getTotalProjectedFormatted() {
-        return "R$ " + currencyFormatter.format(getTotalProjected());
-    }
-
     /** Quanto ainda sobra pra gastar nos orçamentos definidos, sem contar o que já ficou pra trás (gasto + futuro já lançado). */
     public BigDecimal getTotalFree() {
         BigDecimal free = getTotalBudgeted().subtract(getTotalSpent()).subtract(sumBudgets(BudgetDTO::getFuture));
@@ -84,42 +76,14 @@ public class DashboardDTO {
         return "R$ " + currencyFormatter.format(getTotalFree());
     }
 
-    /** "ok" / "warning" / "over", com base na projeção somada de todos os orçamentos vs. o total orçado. */
-    public String getTotalProjectionStatus() {
+    /** "ok" / "warning" / "over", com base no gasto somado de todos os orçamentos vs. o total orçado. */
+    public String getTotalStatus() {
         BigDecimal budgeted = getTotalBudgeted();
         if (budgeted.compareTo(BigDecimal.ZERO) == 0) return "ok";
-        double pct = getTotalProjected().doubleValue() / budgeted.doubleValue() * 100;
+        double pct = getTotalSpent().doubleValue() / budgeted.doubleValue() * 100;
         if (pct > 100) return "over";
         if (pct >= 90) return "warning";
         return "ok";
-    }
-
-    public List<BudgetDTO> getAtRiskBudgets() {
-        List<BudgetDTO> atRisk = new java.util.ArrayList<>();
-        if (budgets == null) return atRisk;
-        for (BudgetDTO b : budgets) {
-            if (!"ok".equals(b.getProjectionStatus())) atRisk.add(b);
-        }
-        atRisk.sort((a, b) -> Double.compare(b.getProjectedPercentage(), a.getProjectedPercentage()));
-        return atRisk;
-    }
-
-    public int getAtRiskBudgetCount() {
-        return getAtRiskBudgets().size();
-    }
-
-    public boolean getHasAtRiskBudgets() {
-        return getAtRiskBudgetCount() > 0;
-    }
-
-    public String getAtRiskBudgetNames() {
-        StringBuilder sb = new StringBuilder();
-        List<BudgetDTO> atRisk = getAtRiskBudgets();
-        for (int i = 0; i < atRisk.size(); i++) {
-            if (i > 0) sb.append(i == atRisk.size() - 1 ? " e " : ", ");
-            sb.append(atRisk.get(i).getName());
-        }
-        return sb.toString();
     }
 
     private BigDecimal sumBudgets(java.util.function.Function<BudgetDTO, BigDecimal> field) {

@@ -466,7 +466,7 @@
         }
         .pill-available.inverse .pill-value { color: var(--c-spent); }
 
-        /* ─── Projection (run-rate) ──────────────────────────── */
+        /* ─── Budget status dot ──────────────────────────────── */
         .budget-status-dot {
             display: inline-block;
             width: 8px;
@@ -478,48 +478,6 @@
         .budget-status-dot.status-ok { background: #51cf66; }
         .budget-status-dot.status-warning { background: #ffd43b; }
         .budget-status-dot.status-over { background: #ff6b6b; }
-
-        .pill-projected {
-            background: rgba(81,207,102,0.1);
-            border-color: rgba(81,207,102,0.25);
-        }
-        .pill-projected .pill-value { color: #51cf66; }
-        .pill-projected.status-warning {
-            background: rgba(255,212,59,0.12);
-            border-color: rgba(255,212,59,0.3);
-        }
-        .pill-projected.status-warning .pill-value { color: #ffd43b; }
-        .pill-projected.status-over {
-            background: rgba(255,107,107,0.12);
-            border-color: rgba(255,107,107,0.3);
-        }
-        .pill-projected.status-over .pill-value { color: #ff6b6b; }
-
-        /* ─── Risk banner ────────────────────────────────────── */
-        .risk-banner {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 18px;
-            margin-bottom: 16px;
-            border-radius: var(--radius-sm);
-            background: rgba(255,107,107,0.12);
-            border: 1px solid rgba(255,107,107,0.3);
-            color: var(--text-primary);
-            font-size: 0.85rem;
-        }
-        .risk-banner-icon {
-            font-size: 1.1rem;
-            flex-shrink: 0;
-        }
-
-        .budget-trend {
-            margin-top: 8px;
-            font-size: 0.7rem;
-            color: var(--text-muted);
-        }
-        .budget-trend.trend-up { color: #ff8787; }
-        .budget-trend.trend-down { color: #69db7c; }
 
         /* ─── Budgets consolidated summary ──────────────────── */
         .budgets-summary {
@@ -691,17 +649,6 @@
             </div>
         </header>
 
-        {#if data.hasAtRiskBudgets}
-        <div class="risk-banner">
-            <span class="risk-banner-icon">⚠️</span>
-            <span>
-                <strong>{data.atRiskBudgetCount}</strong>
-                {#if data.atRiskBudgetCount == 1}orçamento vai estourar{#else}orçamentos vão estourar{/if}
-                esse mês no ritmo atual: {data.atRiskBudgetNames}
-            </span>
-        </div>
-        {/if}
-
         <!-- Summary Cards -->
         <div class="summary-cards">
             <div class="card card-spent">
@@ -789,7 +736,7 @@
                     <span class="section-heading-accent"></span>
                     Orçamentos
                 </h2>
-                <div class="budgets-summary status-{data.totalProjectionStatus}">
+                <div class="budgets-summary status-{data.totalStatus}">
                     <div class="budgets-summary-item">
                         <span class="budgets-summary-label">Orçado</span>
                         <span class="budgets-summary-value">{data.totalBudgetedFormatted}</span>
@@ -807,7 +754,7 @@
                     {#for budget in data.budgets}
                         <div class="budget-item">
                             <div class="budget-item-header">
-                                <span class="budget-name"><span class="budget-status-dot status-{budget.projectionStatus}"></span>{budget.name}</span>
+                                <span class="budget-name"><span class="budget-status-dot status-{budget.status}"></span>{budget.name}</span>
                                 <span class="budget-total-badge">R$ {budget.totalFormatted}</span>
                             </div>
                             <div class="budget-bar-container {#if budget.inverse}inverse{/if}">
@@ -834,16 +781,7 @@
                                     <span class="pill-label">{#if budget.inverse}Falta p/ meta{#else}Disponível{/if}</span>
                                     <span class="pill-value">R$ {budget.availableFormatted}</span>
                                 </span>
-                                <span class="pill pill-projected status-{budget.projectionStatus}">
-                                    <span class="pill-label">Projetado</span>
-                                    <span class="pill-value">R$ {budget.projectedFormatted}</span>
-                                </span>
                             </div>
-                            {#if budget.hasHistory}
-                            <div class="budget-trend {budget.trendStatusClass}">
-                                Média 3m: R$ {budget.historicalAverageFormatted} · {budget.trendPercentageRounded}% do ritmo normal
-                            </div>
-                            {/if}
                         </div>
                     {/for}
                 </div>

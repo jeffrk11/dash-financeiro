@@ -14,12 +14,10 @@ public class BudgetDTO {
     public BigDecimal spent;
     public BigDecimal future;
     public BigDecimal available;
-    public BigDecimal projected;
-    public BigDecimal historicalAverage;
     /** Orçamento de meta inversa (reserva/investimento): o objetivo é ATINGIR o valor, não ficar abaixo dele. */
     public boolean inverse;
 
-    private static final DecimalFormat currencyFormatter = 
+    private static final DecimalFormat currencyFormatter =
         new DecimalFormat("0.00", new DecimalFormatSymbols(new Locale("pt", "BR")));
 
     public BudgetDTO() {}
@@ -111,23 +109,6 @@ public class BudgetDTO {
         return available.doubleValue() / total.doubleValue() * 100;
     }
 
-    public BigDecimal getProjected() {
-        return projected;
-    }
-
-    public void setProjected(BigDecimal projected) {
-        this.projected = projected;
-    }
-
-    public String getProjectedFormatted() {
-        return projected != null ? currencyFormatter.format(projected) : "0,00";
-    }
-
-    public double getProjectedPercentage() {
-        if (total == null || total.compareTo(BigDecimal.ZERO) == 0 || projected == null) return 0;
-        return projected.doubleValue() / total.doubleValue() * 100;
-    }
-
     public boolean getInverse() {
         return inverse;
     }
@@ -137,14 +118,13 @@ public class BudgetDTO {
     }
 
     /**
-     * "ok" (on track), "warning" (close), "over" (bad state) — same three strings for
-     * both kinds so the dot/pill CSS stays one set of classes, but what they MEAN flips:
-     * normal budget: over = spent too much (>100%). warning = 90-100%.
-     * inverse budget (reserva/investimento): over = will fall short of the goal (<80%
-     * projected). warning = 80-100%, not quite there yet. ok = met or beat the goal.
+     * "ok", "warning", "over" — baseado no quanto já foi gasto do total (sem projeção).
+     * Orçamento normal: over = já gastou mais que o total. warning = 90-100%.
+     * Orçamento inverso (reserva/investimento): over = ainda longe da meta (<80%
+     * guardado). warning = 80-100%, quase lá. ok = bateu ou passou a meta.
      */
-    public String getProjectionStatus() {
-        double pct = getProjectedPercentage();
+    public String getStatus() {
+        double pct = getSpentPercentage();
         if (inverse) {
             if (pct >= 100) return "ok";
             if (pct >= 80) return "warning";
@@ -154,52 +134,4 @@ public class BudgetDTO {
         if (pct >= 90) return "warning";
         return "ok";
     }
-
-    public BigDecimal getHistoricalAverage() {
-        return historicalAverage;
-    }
-
-    public void setHistoricalAverage(BigDecimal historicalAverage) {
-        this.historicalAverage = historicalAverage;
-    }
-
-    public String getHistoricalAverageFormatted() {
-        return historicalAverage != null ? currencyFormatter.format(historicalAverage) : "0,00";
-    }
-
-    public boolean getHasHistory() {
-        return historicalAverage != null && historicalAverage.compareTo(BigDecimal.ZERO) > 0;
-    }
-
-    /** Projeção deste mês vs. a média dos últimos meses, em %. Ex: 130 = gastando 30% a mais que o normal. */
-    public double getTrendPercentage() {
-        if (!getHasHistory() || projected == null) return 100;
-        return projected.doubleValue() / historicalAverage.doubleValue() * 100;
-    }
-
-    /** "up" (acima da média), "down" (abaixo), "flat" (parecido, dentro de ±10%) — direção pura, sem julgamento. */
-    public String getTrendDirection() {
-        double pct = getTrendPercentage();
-        if (pct > 110) return "up";
-        if (pct < 90) return "down";
-        return "flat";
-    }
-
-    /**
-     * Classe CSS pra colorir a tendência (reaproveita trend-up=vermelho/trend-down=verde
-     * já existentes no CSS). Num orçamento normal, acima da média é ruim (vermelho).
-     * Num orçamento inverso (reserva/investimento), acima da média é bom — inverte.
-     */
-    public String getTrendStatusClass() {
-        String dir = getTrendDirection();
-        if (!inverse) return "trend-" + dir;
-        if ("up".equals(dir)) return "trend-down";
-        if ("down".equals(dir)) return "trend-up";
-        return "trend-flat";
-    }
-
-    public long getTrendPercentageRounded() {
-        return Math.round(getTrendPercentage());
-    }
 }
-

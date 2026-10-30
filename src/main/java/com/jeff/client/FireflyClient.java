@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.*;
@@ -129,66 +128,6 @@ public class FireflyClient {
             return parseBudgetLimits(json, startDate, endDate);
         }
         return null;
-    }
-
-    /**
-     * Média gasta num orçamento nos N meses anteriores a excludeMonth (não inclui excludeMonth).
-     * Reaproveita a mesma chamada /budgets/{id}/limits (que já traz o histórico todo),
-     * em vez de uma chamada por mês.
-     */
-    public BigDecimal getAverageSpentLastMonths(String budgetId, YearMonth excludeMonth, int monthsBack) {
-        String url = fireflyApiUrl + "/budgets/" + budgetId + "/limits";
-
-        Response response = client.target(url)
-                .request(MediaType.APPLICATION_JSON)
-                .header("Authorization", "Bearer " + fireflyApiToken)
-                .get();
-
-        if (response.getStatus() != 200) return null;
-
-        String json = response.readEntity(String.class);
-        List<YearMonth> months = new ArrayList<>();
-        for (int i = 1; i <= monthsBack; i++) {
-            months.add(excludeMonth.minusMonths(i));
-        }
-        return parseBudgetLimitsAverage(json, months);
-    }
-
-    private BigDecimal parseBudgetLimitsAverage(String json, List<YearMonth> months) {
-        try {
-            JsonNode root = objectMapper.readTree(json);
-            JsonNode dataArray = root.get("data");
-            if (dataArray == null || !dataArray.isArray()) return null;
-
-            Set<String> prefixes = new HashSet<>();
-            for (YearMonth ym : months) prefixes.add(ym.toString()); // YYYY-MM
-
-            BigDecimal sum = BigDecimal.ZERO;
-            int count = 0;
-            for (JsonNode item : dataArray) {
-                JsonNode attributes = item.get("attributes");
-                if (attributes == null) continue;
-                String period = attributes.has("period") ? attributes.get("period").asText() : null;
-                if (!"monthly".equals(period)) continue;
-                String start = attributes.get("start").asText("");
-                String startPrefix = start.length() >= 7 ? start.substring(0, 7) : "";
-                if (!prefixes.contains(startPrefix)) continue;
-
-                BigDecimal spent = BigDecimal.ZERO;
-                JsonNode spentArray = attributes.get("spent");
-                if (spentArray != null && spentArray.isArray() && spentArray.size() > 0) {
-                    String spentStr = spentArray.get(0).get("sum").asText("0.00");
-                    spent = new BigDecimal(spentStr).abs();
-                }
-                sum = sum.add(spent);
-                count++;
-            }
-            if (count == 0) return null;
-            return sum.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP);
-        } catch (Exception e) {
-            System.err.println("Erro ao calcular média histórica de budget: " + e.getMessage());
-            return null;
-        }
     }
 
     /**
@@ -488,7 +427,6 @@ public class FireflyClient {
         public BigDecimal spent;
         public BigDecimal budgeted;
         public BigDecimal currentMonthSpent; // Gasto no mês atual (do limite)
-        public BigDecimal historicalAverage; // Média gasta nos últimos meses (null se não houver histórico)
 
         public Budget() {}
         public Budget(String id, String name, BigDecimal spent, BigDecimal budgeted) {
