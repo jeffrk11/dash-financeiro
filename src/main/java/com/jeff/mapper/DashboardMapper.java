@@ -116,6 +116,8 @@ public class DashboardMapper {
 
             if(!budgetMap.containsKey(budgetName.get())) {
                 BudgetDTO dto = new BudgetDTO(budgetName.get());
+                String lowerName = budgetName.get().toLowerCase();
+                dto.inverse = lowerName.contains("reserva") || lowerName.contains("invest");
                 budgetMap.put(budgetName.get(), dto);
             }
 

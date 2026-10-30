@@ -50,6 +50,52 @@ public class DashboardDTO {
         return sign + "R$ " + currencyFormatter.format(yearProjectedBalance.abs());
     }
 
+    public BigDecimal getTotalBudgeted() {
+        return sumBudgets(BudgetDTO::getTotal);
+    }
+
+    public String getTotalBudgetedFormatted() {
+        return "R$ " + currencyFormatter.format(getTotalBudgeted());
+    }
+
+    public BigDecimal getTotalSpent() {
+        return sumBudgets(BudgetDTO::getSpent);
+    }
+
+    public String getTotalSpentFormatted() {
+        return "R$ " + currencyFormatter.format(getTotalSpent());
+    }
+
+    /** Quanto ainda sobra pra gastar nos orçamentos definidos, sem contar o que já ficou pra trás (gasto + futuro já lançado). */
+    public BigDecimal getTotalFree() {
+        BigDecimal free = getTotalBudgeted().subtract(getTotalSpent()).subtract(sumBudgets(BudgetDTO::getFuture));
+        return free.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : free;
+    }
+
+    public String getTotalFreeFormatted() {
+        return "R$ " + currencyFormatter.format(getTotalFree());
+    }
+
+    /** "ok" / "warning" / "over", com base no gasto somado de todos os orçamentos vs. o total orçado. */
+    public String getTotalStatus() {
+        BigDecimal budgeted = getTotalBudgeted();
+        if (budgeted.compareTo(BigDecimal.ZERO) == 0) return "ok";
+        double pct = getTotalSpent().doubleValue() / budgeted.doubleValue() * 100;
+        if (pct > 100) return "over";
+        if (pct >= 90) return "warning";
+        return "ok";
+    }
+
+    private BigDecimal sumBudgets(java.util.function.Function<BudgetDTO, BigDecimal> field) {
+        if (budgets == null) return BigDecimal.ZERO;
+        BigDecimal total = BigDecimal.ZERO;
+        for (BudgetDTO b : budgets) {
+            BigDecimal v = field.apply(b);
+            if (v != null) total = total.add(v);
+        }
+        return total;
+    }
+
     public BigDecimal calculateYearBalance() {
         BigDecimal deposit = BigDecimal.ZERO;
         BigDecimal withdraw = BigDecimal.ZERO;

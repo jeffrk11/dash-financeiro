@@ -14,8 +14,10 @@ public class BudgetDTO {
     public BigDecimal spent;
     public BigDecimal future;
     public BigDecimal available;
+    /** Orçamento de meta inversa (reserva/investimento): o objetivo é ATINGIR o valor, não ficar abaixo dele. */
+    public boolean inverse;
 
-    private static final DecimalFormat currencyFormatter = 
+    private static final DecimalFormat currencyFormatter =
         new DecimalFormat("0.00", new DecimalFormatSymbols(new Locale("pt", "BR")));
 
     public BudgetDTO() {}
@@ -106,5 +108,30 @@ public class BudgetDTO {
         if (total == null || total.compareTo(BigDecimal.ZERO) == 0) return 0;
         return available.doubleValue() / total.doubleValue() * 100;
     }
-}
 
+    public boolean getInverse() {
+        return inverse;
+    }
+
+    public void setInverse(boolean inverse) {
+        this.inverse = inverse;
+    }
+
+    /**
+     * "ok", "warning", "over" — baseado no quanto já foi gasto do total (sem projeção).
+     * Orçamento normal: over = já gastou mais que o total. warning = 90-100%.
+     * Orçamento inverso (reserva/investimento): over = ainda longe da meta (<80%
+     * guardado). warning = 80-100%, quase lá. ok = bateu ou passou a meta.
+     */
+    public String getStatus() {
+        double pct = getSpentPercentage();
+        if (inverse) {
+            if (pct >= 100) return "ok";
+            if (pct >= 80) return "warning";
+            return "over";
+        }
+        if (pct > 100) return "over";
+        if (pct >= 90) return "warning";
+        return "ok";
+    }
+}

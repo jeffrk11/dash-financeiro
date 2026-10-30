@@ -236,29 +236,21 @@
             box-shadow: var(--shadow);
         }
 
-        /* ─── Main Two-Column Grid ───────────────────────────── */
+        /* ─── Year Chart Row ──────────────────────────────────── */
         .main-grid {
             display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: var(--gap);
+            grid-template-columns: 1fr;
             margin-bottom: var(--gap);
-            align-items: start;
         }
 
         .panel-budgets {
-            position: sticky;
-            top: calc(64px + 24px);
-            max-height: calc(100vh - 128px);
-            display: flex;
-            flex-direction: column;
+            margin-bottom: var(--gap);
         }
 
-        .budgets-scroll {
-            overflow-y: auto;
-            flex: 1;
-            scrollbar-width: thin;
-            scrollbar-color: var(--border) transparent;
-            padding-right: 4px;
+        .budgets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 14px;
         }
 
         .panel-sankey {
@@ -344,12 +336,10 @@
         }
 
         .budget-item {
-            padding: 14px 0;
-            border-bottom: 1px solid rgba(45, 45, 68, 0.6);
-        }
-
-        .budget-item:last-of-type {
-            border-bottom: none;
+            padding: 16px;
+            border: 1px solid rgba(45, 45, 68, 0.6);
+            border-radius: var(--radius-sm);
+            background: rgba(255,255,255,0.015);
         }
 
         .budget-item-header {
@@ -407,6 +397,14 @@
             transition: flex-basis 0.4s ease;
         }
 
+        /* Orçamento inverso (reserva/investimento): guardar é bom, faltar é ruim — cores trocadas. */
+        .budget-bar-container.inverse .budget-bar-spent {
+            background: linear-gradient(90deg, #51cf66, #69db7c);
+        }
+        .budget-bar-container.inverse .budget-bar-available {
+            background: linear-gradient(90deg, #ff6b6b, #ff8787);
+        }
+
         /* ─── Budget Pills ───────────────────────────────────── */
         .budget-pills {
             display: flex;
@@ -456,21 +454,77 @@
         }
         .pill-available .pill-value { color: var(--c-received); }
 
+        /* Orçamento inverso (reserva/investimento): guardado = bom (verde), falta p/ meta = ruim (vermelho). */
+        .pill-spent.inverse {
+            background: rgba(81,207,102,0.1);
+            border-color: rgba(81,207,102,0.25);
+        }
+        .pill-spent.inverse .pill-value { color: var(--c-received); }
+        .pill-available.inverse {
+            background: rgba(255,107,107,0.1);
+            border-color: rgba(255,107,107,0.25);
+        }
+        .pill-available.inverse .pill-value { color: var(--c-spent); }
+
+        /* ─── Budget status dot ──────────────────────────────── */
+        .budget-status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            flex-shrink: 0;
+        }
+        .budget-status-dot.status-ok { background: #51cf66; }
+        .budget-status-dot.status-warning { background: #ffd43b; }
+        .budget-status-dot.status-over { background: #ff6b6b; }
+
+        /* ─── Budgets consolidated summary ──────────────────── */
+        .budgets-summary {
+            display: flex;
+            gap: 10px;
+            padding: 12px;
+            margin-bottom: 14px;
+            border-radius: var(--radius-sm);
+            background: rgba(81,207,102,0.08);
+            border: 1px solid rgba(81,207,102,0.2);
+        }
+        .budgets-summary.status-warning {
+            background: rgba(255,212,59,0.1);
+            border-color: rgba(255,212,59,0.25);
+        }
+        .budgets-summary.status-over {
+            background: rgba(255,107,107,0.1);
+            border-color: rgba(255,107,107,0.25);
+        }
+        .budgets-summary-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        .budgets-summary-label {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        .budgets-summary-value {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .budgets-summary-free .budgets-summary-value {
+            color: #51cf66;
+        }
+        .budgets-summary.status-warning .budgets-summary-free .budgets-summary-value { color: #ffd43b; }
+        .budgets-summary.status-over .budgets-summary-free .budgets-summary-value { color: #ff6b6b; }
+
         /* ─── Responsive ─────────────────────────────────────── */
         @media (max-width: 1100px) {
             .main-grid {
                 grid-template-columns: 1fr;
-            }
-
-            .panel-budgets {
-                position: static;
-                max-height: none;
-                overflow: visible;
-            }
-
-            .budgets-scroll {
-                overflow: visible;
-                max-height: none;
             }
 
             .summary-cards {
@@ -674,20 +728,36 @@
                 </div>
             </section>
 
-            <!-- Budgets Sidebar -->
-            <section class="panel panel-budgets">
+        </div>
+
+        <!-- Budgets -->
+        <section class="panel panel-budgets">
                 <h2 class="section-heading">
                     <span class="section-heading-accent"></span>
                     Orçamentos
                 </h2>
-                <div class="budgets-scroll">
+                <div class="budgets-summary status-{data.totalStatus}">
+                    <div class="budgets-summary-item">
+                        <span class="budgets-summary-label">Orçado</span>
+                        <span class="budgets-summary-value">{data.totalBudgetedFormatted}</span>
+                    </div>
+                    <div class="budgets-summary-item">
+                        <span class="budgets-summary-label">Gasto</span>
+                        <span class="budgets-summary-value">{data.totalSpentFormatted}</span>
+                    </div>
+                    <div class="budgets-summary-item budgets-summary-free">
+                        <span class="budgets-summary-label">Livre pra gastar</span>
+                        <span class="budgets-summary-value">{data.totalFreeFormatted}</span>
+                    </div>
+                </div>
+                <div class="budgets-grid">
                     {#for budget in data.budgets}
                         <div class="budget-item">
                             <div class="budget-item-header">
-                                <span class="budget-name">{budget.name}</span>
+                                <span class="budget-name"><span class="budget-status-dot status-{budget.status}"></span>{budget.name}</span>
                                 <span class="budget-total-badge">R$ {budget.totalFormatted}</span>
                             </div>
-                            <div class="budget-bar-container">
+                            <div class="budget-bar-container {#if budget.inverse}inverse{/if}">
                                 {#if budget.getSpentPercentage() > 0}
                                     <div class="budget-bar-spent" style="flex-basis: {budget.getSpentPercentage()}%"></div>
                                 {/if}
@@ -699,16 +769,16 @@
                                 {/if}
                             </div>
                             <div class="budget-pills">
-                                <span class="pill pill-spent">
-                                    <span class="pill-label">Gasto</span>
+                                <span class="pill pill-spent {#if budget.inverse}inverse{/if}">
+                                    <span class="pill-label">{#if budget.inverse}Guardado{#else}Gasto{/if}</span>
                                     <span class="pill-value">R$ {budget.spentFormatted}</span>
                                 </span>
                                 <span class="pill pill-future">
                                     <span class="pill-label">Futuro</span>
                                     <span class="pill-value">R$ {budget.futureFormatted}</span>
                                 </span>
-                                <span class="pill pill-available">
-                                    <span class="pill-label">Disponível</span>
+                                <span class="pill pill-available {#if budget.inverse}inverse{/if}">
+                                    <span class="pill-label">{#if budget.inverse}Falta p/ meta{#else}Disponível{/if}</span>
                                     <span class="pill-value">R$ {budget.availableFormatted}</span>
                                 </span>
                             </div>
@@ -729,9 +799,7 @@
                         <span>Disponível</span>
                     </div>
                 </div>
-            </section>
-
-        </div>
+        </section>
 
         <!-- Sankey Diagram -->
         <section class="panel panel-sankey">
