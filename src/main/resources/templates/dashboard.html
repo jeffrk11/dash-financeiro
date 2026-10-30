@@ -153,9 +153,15 @@
             display: flex;
             justify-content: center;
             align-items: baseline;
-            gap: 12px;
+            gap: 36px;
             margin-bottom: 20px;
             text-align: center;
+        }
+        .flow-header-metric {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
         }
         .flow-label {
             font-size: 0.85rem;
@@ -201,22 +207,8 @@
         .flow-received-future { background: rgba(4,190,161,0.55); }
         .flow-spent { background: linear-gradient(90deg, #ff6b6b, #ff8787); }
         .flow-spent-future { background: rgba(255,169,77,0.65); }
-        .flow-balance-fill {
-            height: 100%;
-            display: flex;
-            overflow: hidden;
-        }
-        .safe-to-spend-bar-known {
-            background: linear-gradient(90deg, #ff6b6b, #ff8787);
-            height: 100%;
-        }
-        .safe-to-spend-bar-predicted {
+        .flow-spent-predicted {
             background: repeating-linear-gradient(45deg, #748ffc, #748ffc 4px, #667deb 4px, #667deb 8px);
-            height: 100%;
-        }
-        .safe-to-spend-bar-free {
-            background: linear-gradient(90deg, #51cf66, #69db7c);
-            height: 100%;
         }
         .flow-row-value {
             font-size: 0.82rem;
@@ -765,12 +757,18 @@
         <!-- Monthly Flow -->
         <div class="flow-card">
             <div class="flow-header">
-                <span class="flow-label">Saldo Projetado do Mês</span>
-                {#if data.summary.isBalancePositive()}
-                <span class="flow-value positive">+€{data.summary.projectedBalanceFormatted}</span>
-                {#else}
-                <span class="flow-value negative">-€{data.summary.projectedBalanceFormatted}</span>
-                {/if}
+                <div class="flow-header-metric">
+                    <span class="flow-label">Saldo Projetado do Mês</span>
+                    {#if data.summary.isBalancePositive()}
+                    <span class="flow-value positive">+€{data.summary.projectedBalanceFormatted}</span>
+                    {#else}
+                    <span class="flow-value negative">-€{data.summary.projectedBalanceFormatted}</span>
+                    {/if}
+                </div>
+                <div class="flow-header-metric">
+                    <span class="flow-label">Livre pra Gastar</span>
+                    <span class="flow-value {#if data.safeToSpendIsNegative}negative{#else}positive{/if}">{data.safeToSpendFormatted}</span>
+                </div>
             </div>
 
             <div class="flow-row">
@@ -787,29 +785,9 @@
                 <div class="flow-bar-track">
                     {#if data.expenseNowPct > 0}<div class="flow-seg flow-spent" style="width: {data.expenseNowPct}%"></div>{/if}
                     {#if data.expenseFuturePct > 0}<div class="flow-seg flow-spent-future" style="width: {data.expenseFuturePct}%"></div>{/if}
+                    {#if data.expensePredictedPct > 0}<div class="flow-seg flow-spent-predicted" style="width: {data.expensePredictedPct}%"></div>{/if}
                 </div>
-                <span class="flow-row-value">€{data.summary.spentNowFormatted} <span class="flow-row-value-future">+ €{data.summary.spentFutureFormatted}</span></span>
-            </div>
-
-            <div class="flow-row">
-                <span class="flow-row-label">Saldo agora</span>
-                <div class="flow-bar-track">
-                    <div class="flow-balance-fill" style="width: {data.balanceBarPct}%">
-                        {#if data.knownExpensePercentage > 0}<div class="safe-to-spend-bar-known" style="flex-basis: {data.knownExpensePercentage}%"></div>{/if}
-                        {#if data.predictedExpensePercentage > 0}<div class="safe-to-spend-bar-predicted" style="flex-basis: {data.predictedExpensePercentage}%"></div>{/if}
-                        {#if data.freePercentage > 0}<div class="safe-to-spend-bar-free" style="flex-basis: {data.freePercentage}%"></div>{/if}
-                    </div>
-                </div>
-                <span class="flow-row-value {#if data.safeToSpendIsNegative}negative{/if}">{data.spendableBalanceFormatted} <span class="flow-row-value-future">· livre {data.safeToSpendFormatted}</span></span>
-            </div>
-            <div class="flow-detail">
-                <span>Conhecidos: -€{data.summary.spentFutureFormatted}</span>
-                {#if data.hasPredictedRecurring}
-                <span class="flow-detail-sep">·</span>
-                <span>Previstos (fixas): -{data.totalPredictedRecurringFormatted}</span>
-                {/if}
-                <span class="flow-detail-sep">·</span>
-                <span>Recebimentos futuros: +€{data.summary.receivedFutureFormatted}</span>
+                <span class="flow-row-value">€{data.summary.spentNowFormatted} <span class="flow-row-value-future">+ €{data.summary.spentFutureFormatted}{#if data.hasPredictedRecurring} + ~{data.totalPredictedRecurringFormatted}{/if}</span></span>
             </div>
             {#if data.hasPredictedRecurring}
             <div class="flow-detail flow-detail-items">
@@ -822,7 +800,7 @@
             <div class="flow-legend">
                 <div class="legend-item"><div class="legend-color" style="background:#51cf66"></div><span>Recebido</span></div>
                 <div class="legend-item"><div class="legend-color" style="background:#04bea1;opacity:0.7"></div><span>Será Recebido</span></div>
-                <div class="legend-item"><div class="legend-color" style="background:#ff6b6b"></div><span>Gasto / Conhecido</span></div>
+                <div class="legend-item"><div class="legend-color" style="background:#ff6b6b"></div><span>Gasto</span></div>
                 <div class="legend-item"><div class="legend-color" style="background:#ffa94d;opacity:0.7"></div><span>Será Gasto</span></div>
                 <div class="legend-item"><div class="legend-color" style="background:#748ffc"></div><span>Previsto (fixas)</span></div>
             </div>

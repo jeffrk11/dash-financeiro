@@ -190,8 +190,13 @@ public class DashboardDTO {
         return now.add(future);
     }
 
+    /** Saídas conhecidas + a estimativa de fixas pendentes — o que a barra de Saídas representa inteira. */
+    public BigDecimal getExpenseTotalWithPredicted() {
+        return getExpenseTotal().add(getTotalPredictedRecurring());
+    }
+
     private BigDecimal getFlowScale() {
-        BigDecimal scale = getIncomeTotal().max(getExpenseTotal()).max(getSpendableBalance());
+        BigDecimal scale = getIncomeTotal().max(getExpenseTotalWithPredicted()).max(getSpendableBalance());
         return scale.compareTo(BigDecimal.ZERO) > 0 ? scale : BigDecimal.ONE;
     }
 
@@ -209,6 +214,10 @@ public class DashboardDTO {
 
     public double getExpenseFuturePct() {
         return pctOfScale(summary != null ? summary.spentFuture : null);
+    }
+
+    public double getExpensePredictedPct() {
+        return pctOfScale(getTotalPredictedRecurring());
     }
 
     public double getBalanceBarPct() {
