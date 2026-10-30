@@ -838,6 +838,8 @@
                 }
 
                 // Constrói o Sankey: Entradas → Renda Total → Despesas
+                const fmt = (n) => '€' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
                 const source = [];
                 const target = [];
                 const value = [];
@@ -847,7 +849,7 @@
                 let nodeIndex = 0;
 
                 // Node 0: "Renda Total" (sempre no meio)
-                labels.push('Renda Total');
+                labels.push('Renda Total  ' + fmt(sankeyData.totalIncome));
                 colors.push('#51cf66'); // Verde
                 const totalNode = 0;
                 nodeIndex = 1;
@@ -856,7 +858,7 @@
                 const incomeStartNode = nodeIndex;
                 for (const category of sankeyData.incomeCategories) {
                     if (category.name && category.amount > 0) {
-                        labels.push('📥 ' + category.name);
+                        labels.push('📥 ' + category.name + '  ' + fmt(category.amount));
                         colors.push('#748ffc'); // Azul
                         // Ligação: Categoria Entrada → Renda Total
                         source.push(nodeIndex);
@@ -870,7 +872,7 @@
                 const expenseStartNode = nodeIndex;
                 for (const category of sankeyData.expenseCategories) {
                     if (category.name && category.amount > 0) {
-                        labels.push('💸 ' + category.name);
+                        labels.push('💸 ' + category.name + '  ' + fmt(category.amount));
                         colors.push('#ff6b6b'); // Vermelho
                         // Ligação: Renda Total → Categoria Despesa
                         source.push(totalNode);
@@ -886,10 +888,14 @@
                     return;
                 }
 
+                const isMobile = window.innerWidth < 768;
+
                 const data = [{
                     type: "sankey",
                     orientation: "h",
-                    valueformat: ".0f",
+                    valueformat: ".2f",
+                    valuesuffix: "€",
+                    textfont: { color: '#f8f8f8', size: isMobile ? 11 : 15 },
                     node: {
                         pad: 15,
                         thickness: 20,
@@ -908,7 +914,6 @@
                     }
                 }];
 
-                const isMobile = window.innerWidth < 768;
                 const layout = {
                     font: { size: isMobile ? 11 : 16, color: '#f8f8f8' },
                     height: isMobile ? 350 : 600,
@@ -917,12 +922,7 @@
                     plot_bgcolor: 'rgba(0,0,0,0)'
                 };
 
-                Plotly.newPlot('sankey-chart', data, layout, { responsive: true }).then(() => {
-                    document.querySelectorAll('#sankey-chart .sankey text').forEach(el => {
-                        el.style.fill = '#ffffff';
-                        el.style.stroke = '#ffffff';
-                    });
-                });
+                Plotly.newPlot('sankey-chart', data, layout, { responsive: true });
             } catch (error) {
                 console.error('Erro ao renderizar Sankey:', error);
                 document.getElementById('sankey-chart').innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">Erro ao carregar o gráfico</p>';
