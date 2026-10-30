@@ -4,7 +4,6 @@ import com.aayushatharva.brotli4j.common.annotations.Local;
 import com.jeff.client.MonthlyFinancialData;
 import jakarta.enterprise.context.ApplicationScoped;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.*;
@@ -67,16 +66,23 @@ public class DashboardMapper {
     }
 
     /**
-     * Despesas da categoria "fixas" que normalmente acontecem todo mês mas ainda não
-     * aconteceram no mês visualizado — estimadas pela média dos meses anteriores.
+     * Despesas da categoria "fixas" que aconteceram no mês ANTERIOR mas ainda não
+     * aconteceram no mês visualizado — estimadas pelo valor do mês anterior.
      * Só existem gastos recorrentes nessa categoria (sem pontual), por isso dá pra usar
      * ela direto sem precisar de uma tag separada.
+     *
+     * Deliberadamente olha só pro mês anterior (não a média de toda a história): uma
+     * conta semestral/anual (ex: seguro do carro) só aparece no histórico de vez em
+     * quando, e se contássemos qualquer ocorrência passada ela seria "prevista" em todo
+     * mês em que não cai de verdade, gerando gasto fantasma a maior parte do tempo.
+     * Olhando só o mês anterior, ela só é prevista (incorretamente) no mês seguinte ao
+     * em que realmente ocorreu — bem mais raro.
      */
     private List<PredictedExpenseDTO> buildPredictedRecurring(List<FireflyClient.Transaction> fixasHistory, YearMonth viewedMonth) {
         if (fixasHistory == null) return new ArrayList<>();
 
-        Map<String, List<BigDecimal>> historyByDescription = new HashMap<>();
-        Map<String, Set<YearMonth>> monthsSeenByDescription = new HashMap<>();
+        YearMonth previousMonth = viewedMonth.minusMonths(1);
+        Map<String, BigDecimal> lastMonthByDescription = new HashMap<>();
         Set<String> happenedThisMonth = new HashSet<>();
 
         for (FireflyClient.Transaction tx : fixasHistory) {
@@ -85,23 +91,15 @@ public class DashboardMapper {
             YearMonth txMonth = YearMonth.from(tx.date);
             if (txMonth.equals(viewedMonth)) {
                 happenedThisMonth.add(desc);
-            } else if (txMonth.isBefore(viewedMonth)) {
-                historyByDescription.computeIfAbsent(desc, k -> new ArrayList<>()).add(tx.amount.abs());
-                monthsSeenByDescription.computeIfAbsent(desc, k -> new HashSet<>()).add(txMonth);
+            } else if (txMonth.equals(previousMonth)) {
+                lastMonthByDescription.merge(desc, tx.amount.abs(), BigDecimal::add);
             }
         }
 
-        // Só prevê quem já apareceu em pelo menos 2 meses diferentes — descrições que só
-        // aparecem uma vez costumam ser rótulo pontual/variado (ex: "seguro casa março"),
-        // não uma recorrência de verdade, e previam gasto fantasma se contadas.
         List<PredictedExpenseDTO> predicted = new ArrayList<>();
-        for (Map.Entry<String, List<BigDecimal>> entry : historyByDescription.entrySet()) {
+        for (Map.Entry<String, BigDecimal> entry : lastMonthByDescription.entrySet()) {
             if (happenedThisMonth.contains(entry.getKey())) continue;
-            if (monthsSeenByDescription.get(entry.getKey()).size() < 2) continue;
-            List<BigDecimal> amounts = entry.getValue();
-            BigDecimal sum = amounts.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
-            BigDecimal avg = sum.divide(BigDecimal.valueOf(amounts.size()), 2, RoundingMode.HALF_UP);
-            predicted.add(new PredictedExpenseDTO(entry.getKey(), avg));
+            predicted.add(new PredictedExpenseDTO(entry.getKey(), entry.getValue()));
         }
         predicted.sort((a, b) -> b.amount.compareTo(a.amount));
         return predicted;
