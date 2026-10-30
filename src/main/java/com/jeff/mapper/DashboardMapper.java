@@ -81,12 +81,13 @@ public class DashboardMapper {
 
         for (FireflyClient.Transaction tx : fixasHistory) {
             if (tx.date == null || tx.description == null || !"withdrawal".equals(tx.type)) continue;
+            String desc = normalizeRecurringDescription(tx.description);
             YearMonth txMonth = YearMonth.from(tx.date);
             if (txMonth.equals(viewedMonth)) {
-                happenedThisMonth.add(tx.description);
+                happenedThisMonth.add(desc);
             } else if (txMonth.isBefore(viewedMonth)) {
-                historyByDescription.computeIfAbsent(tx.description, k -> new ArrayList<>()).add(tx.amount.abs());
-                monthsSeenByDescription.computeIfAbsent(tx.description, k -> new HashSet<>()).add(txMonth);
+                historyByDescription.computeIfAbsent(desc, k -> new ArrayList<>()).add(tx.amount.abs());
+                monthsSeenByDescription.computeIfAbsent(desc, k -> new HashSet<>()).add(txMonth);
             }
         }
 
@@ -104,6 +105,15 @@ public class DashboardMapper {
         }
         predicted.sort((a, b) -> b.amount.compareTo(a.amount));
         return predicted;
+    }
+
+    /**
+     * Junta descrições que são a mesma conta recorrente escrita diferente — confirmado
+     * com o usuário que "internet" e "internet casa" são a mesma fatura (2026-10-30).
+     */
+    private String normalizeRecurringDescription(String description) {
+        if ("internet casa".equalsIgnoreCase(description)) return "internet";
+        return description;
     }
 
     /**
