@@ -140,89 +140,157 @@
             transition: background 0.2s ease;
         }
 
-        /* ─── Summary Cards ──────────────────────────────────── */
-        .summary-cards {
-            display: grid;
-            grid-template-columns: repeat(5, 1fr);
-            gap: var(--gap-sm);
+        /* ─── Monthly Flow ────────────────────────────────────── */
+        .flow-card {
+            padding: 24px;
             margin-bottom: var(--gap);
-        }
-
-        .card {
-            background: rgba(26, 26, 46, 0.75);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
             border-radius: var(--radius-lg);
+            background: rgba(26, 26, 46, 0.75);
             border: 1px solid var(--border);
-            padding: 20px 16px;
+            box-shadow: var(--shadow);
+        }
+        .flow-header {
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+            gap: 36px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .flow-header-metric {
             display: flex;
             flex-direction: column;
             align-items: center;
-            text-align: center;
-            gap: 6px;
-            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
+            gap: 2px;
         }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0;
-            height: 3px;
-            border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-            background: var(--card-accent, var(--c-balance));
-        }
-
-        .card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 16px 48px rgba(0,0,0,0.7);
-            border-color: var(--border-hover);
-        }
-
-        .card-spent          { --card-accent: var(--c-spent);    }
-        .card-future         { --card-accent: var(--c-future);   }
-        .card-received       { --card-accent: var(--c-received); }
-        .card-received-future{ --card-accent: var(--c-income-f); }
-        .card-balance        { --card-accent: var(--c-balance);  }
-
-        .card-balance.positive { --card-accent: var(--c-received); }
-        .card-balance.negative { --card-accent: var(--c-spent);    }
-
-        .card-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 50%;
-            background: rgba(255,255,255,0.07);
-            border: 1px solid rgba(255,255,255,0.12);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            margin-bottom: 2px;
-            flex-shrink: 0;
-        }
-
-        .card-value {
-            font-size: 1.5rem;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            line-height: 1;
-            color: var(--card-accent, var(--c-balance));
-        }
-
-        .card-title {
-            font-size: 0.68rem;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
+        .flow-label {
+            font-size: 0.85rem;
             color: var(--text-secondary);
             font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+        }
+        .flow-value {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+        .flow-value.positive { color: #51cf66; }
+        .flow-value.negative { color: #ff6b6b; }
+
+        .metric-tooltip {
+            position: relative;
+            cursor: help;
+        }
+        .metric-tooltip .tooltip-box {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%) translateY(-4px);
+            width: max-content;
+            max-width: 240px;
+            background: #10101a;
+            border: 1px solid var(--border-hover);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 0.74rem;
+            font-weight: 500;
+            line-height: 1.6;
+            text-align: left;
+            text-transform: none;
+            letter-spacing: normal;
+            color: var(--text-secondary);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+            z-index: 20;
+        }
+        .metric-tooltip .tooltip-box strong {
+            color: var(--text-primary);
+        }
+        .metric-tooltip .tooltip-box::after {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-bottom-color: #10101a;
+        }
+        .metric-tooltip:hover .tooltip-box {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateX(-50%) translateY(0);
         }
 
-        .card-subtitle {
+        .flow-row {
+            display: grid;
+            grid-template-columns: 90px 1fr auto;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 10px;
+        }
+        .flow-row:last-of-type {
+            margin-bottom: 0;
+        }
+        .flow-row-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .flow-bar-track {
+            height: 10px;
+            background: rgba(45, 45, 68, 0.6);
+            border-radius: 5px;
+            overflow: hidden;
+            display: flex;
+        }
+        .flow-seg {
+            height: 100%;
+        }
+        .flow-received { background: linear-gradient(90deg, #51cf66, #69db7c); }
+        .flow-received-future { background: rgba(4,190,161,0.55); }
+        .flow-spent { background: linear-gradient(90deg, #ff6b6b, #ff8787); }
+        .flow-spent-future { background: rgba(255,169,77,0.65); }
+        .flow-spent-predicted {
+            background: repeating-linear-gradient(45deg, #748ffc, #748ffc 4px, #667deb 4px, #667deb 8px);
+        }
+        .flow-row-value {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+        }
+        .flow-row-value.negative {
+            color: #ff6b6b;
+        }
+        .flow-row-value-future {
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+        .flow-legend {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 18px;
+        }
+        .flow-detail {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
             font-size: 0.72rem;
             color: var(--text-muted);
+            margin-top: 4px;
+        }
+        .flow-detail-items {
+            margin-top: 2px;
+            color: #9fa6d9;
+        }
+        .flow-detail-sep {
+            opacity: 0.5;
         }
 
         /* ─── Panel (shared base) ────────────────────────────── */
@@ -304,6 +372,65 @@
         .account-balance.negative {
             color: #ff6b6b;
         }
+        .account-limit {
+            font-size: 0.68rem;
+            color: var(--text-muted);
+        }
+
+        /* ─── Debts ───────────────────────────────────────────── */
+        .debts-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: 14px 18px;
+            margin-bottom: 14px;
+            border-radius: var(--radius-sm);
+            background: rgba(255,107,107,0.08);
+            border: 1px solid rgba(255,107,107,0.22);
+        }
+        .debts-total-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+        .debts-total-value {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #ff6b6b;
+        }
+        .debts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 12px;
+        }
+        .debt-item {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            padding: 14px 16px;
+            border: 1px solid rgba(45, 45, 68, 0.6);
+            border-radius: var(--radius-sm);
+            background: rgba(255,255,255,0.015);
+        }
+        .debt-name {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .debt-owed {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #ff6b6b;
+        }
+        .debts-empty {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+            padding: 12px 0;
+        }
 
         .panel-sankey {
             margin-bottom: 0;
@@ -328,6 +455,14 @@
             align-items: center;
             gap: 10px;
             margin-bottom: 20px;
+        }
+
+        .section-heading-sub {
+            font-weight: 500;
+            text-transform: none;
+            letter-spacing: normal;
+            color: var(--text-muted);
+            font-size: 0.78rem;
         }
 
         .section-heading-accent {
@@ -578,10 +713,6 @@
             .main-grid {
                 grid-template-columns: 1fr;
             }
-
-            .summary-cards {
-                grid-template-columns: repeat(3, 1fr);
-            }
         }
 
         @media (max-width: 768px) {
@@ -613,27 +744,13 @@
                 justify-content: center;
             }
 
-            .summary-cards {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 10px;
+            .flow-row {
+                grid-template-columns: 70px 1fr;
             }
 
-            .card-balance {
+            .flow-row-value {
                 grid-column: 1 / -1;
-            }
-
-            .card {
-                padding: 16px 12px;
-            }
-
-            .card-value {
-                font-size: 1.25rem;
-            }
-
-            .card-icon {
-                width: 38px;
-                height: 38px;
-                font-size: 1.1rem;
+                text-align: right;
             }
 
             .panel {
@@ -657,18 +774,8 @@
         }
 
         @media (max-width: 480px) {
-            .summary-cards {
-                grid-template-columns: 1fr 1fr;
-            }
-
-            .card-value {
-                font-size: 1.1rem;
-            }
-
-            .card-icon {
-                width: 34px;
-                height: 34px;
-                font-size: 1rem;
+            .flow-value {
+                font-size: 1.3rem;
             }
 
             .budget-pills {
@@ -701,47 +808,80 @@
             </div>
         </header>
 
-        <!-- Summary Cards -->
-        <div class="summary-cards">
-            <div class="card card-spent">
-                <div class="card-icon">💸</div>
-                <div class="card-value">€{data.summary.spentNowFormatted}</div>
-                <div class="card-title">Gasto Até Agora</div>
-                <div class="card-subtitle">Transações passadas</div>
-            </div>
-            <div class="card card-future">
-                <div class="card-icon">🚀</div>
-                <div class="card-value">€{data.summary.spentFutureFormatted}</div>
-                <div class="card-title">Será Gasto</div>
-                <div class="card-subtitle">Transações futuras</div>
-            </div>
-            <div class="card card-received">
-                <div class="card-icon">📥</div>
-                <div class="card-value">€{data.summary.receivedNowFormatted}</div>
-                <div class="card-title">Recebido</div>
-                <div class="card-subtitle">Transações passadas</div>
-            </div>
-            <div class="card card-received-future">
-                <div class="card-icon">📈</div>
-                <div class="card-value">€{data.summary.receivedFutureFormatted}</div>
-                <div class="card-title">Será Recebido</div>
-                <div class="card-subtitle">Transações futuras</div>
-            </div>
-            {#if data.summary.isBalancePositive()}
-                <div class="card card-balance positive">
-                    <div class="card-icon">⚖️</div>
-                    <div class="card-value">+€{data.summary.projectedBalanceFormatted}</div>
-                    <div class="card-title">Saldo Projetado</div>
-                    <div class="card-subtitle">Superávit</div>
+        <!-- Monthly Flow -->
+        <div class="flow-card">
+            <div class="flow-header">
+                <div class="flow-header-metric metric-tooltip">
+                    <span class="flow-label">Saldo Projetado do Mês</span>
+                    {#if data.summary.isBalancePositive()}
+                    <span class="flow-value positive">+€{data.summary.projectedBalanceFormatted}</span>
+                    {#else}
+                    <span class="flow-value negative">-€{data.summary.projectedBalanceFormatted}</span>
+                    {/if}
+                    <div class="tooltip-box">
+                        €{data.summary.receivedNowFormatted} recebido<br>
+                        + €{data.summary.receivedFutureFormatted} será recebido<br>
+                        − €{data.summary.spentNowFormatted} gasto<br>
+                        − €{data.summary.spentFutureFormatted} será gasto<br>
+                        = <strong>{#if data.summary.isBalancePositive()}+{#else}-{/if}€{data.summary.projectedBalanceFormatted}</strong>
+                    </div>
                 </div>
-            {#else}
-                <div class="card card-balance negative">
-                    <div class="card-icon">⚖️</div>
-                    <div class="card-value">-€{data.summary.projectedBalanceFormatted}</div>
-                    <div class="card-title">Saldo Projetado</div>
-                    <div class="card-subtitle">Déficit</div>
+                <div class="flow-header-metric metric-tooltip">
+                    <span class="flow-label">Livre pra Gastar</span>
+                    <span class="flow-value {#if data.safeToSpendIsNegative}negative{#else}positive{/if}">{data.safeToSpendFormatted}</span>
+                    <div class="tooltip-box">
+                        {#if data.variableBudget}
+                        €{data.variableBudget.totalFormatted} orçado (variáveis)<br>
+                        − €{data.variableBudget.spentFormatted} gasto<br>
+                        − €{data.variableBudget.futureFormatted} agendado<br>
+                        = <strong>{data.safeToSpendFormatted}</strong>
+                        {#else}
+                        Orçamento "variáveis" não encontrado neste mês.
+                        {/if}
+                    </div>
                 </div>
+            </div>
+
+            <div class="flow-row">
+                <span class="flow-row-label">Entradas</span>
+                <div class="flow-bar-track">
+                    {#if data.incomeNowPct > 0}<div class="flow-seg flow-received" style="width: {data.incomeNowPct}%"></div>{/if}
+                    {#if data.incomeFuturePct > 0}<div class="flow-seg flow-received-future" style="width: {data.incomeFuturePct}%"></div>{/if}
+                </div>
+                <span class="flow-row-value">€{data.summary.receivedNowFormatted} <span class="flow-row-value-future">+ €{data.summary.receivedFutureFormatted}</span></span>
+            </div>
+            {#if data.hasFutureIncome}
+            <div class="flow-detail flow-detail-items">
+                {#for item in data.futureIncome}
+                <span>{item.name}: {item.amountFormatted}</span>{#if item_count < data.futureIncome.size}<span class="flow-detail-sep">·</span>{/if}
+                {/for}
+            </div>
             {/if}
+
+            <div class="flow-row">
+                <span class="flow-row-label">Saídas</span>
+                <div class="flow-bar-track">
+                    {#if data.expenseNowPct > 0}<div class="flow-seg flow-spent" style="width: {data.expenseNowPct}%"></div>{/if}
+                    {#if data.expenseFuturePct > 0}<div class="flow-seg flow-spent-future" style="width: {data.expenseFuturePct}%"></div>{/if}
+                    {#if data.expensePredictedPct > 0}<div class="flow-seg flow-spent-predicted" style="width: {data.expensePredictedPct}%"></div>{/if}
+                </div>
+                <span class="flow-row-value">€{data.summary.spentNowFormatted} <span class="flow-row-value-future">+ €{data.summary.spentFutureFormatted}{#if data.hasPredictedRecurring} + ~{data.totalPredictedRecurringFormatted}{/if}</span></span>
+            </div>
+            {#if data.hasPredictedRecurring}
+            <div class="flow-detail flow-detail-items">
+                {#for item in data.predictedRecurring}
+                <span>{item.name}: ~{item.amountFormatted}</span>{#if item_count < data.predictedRecurring.size}<span class="flow-detail-sep">·</span>{/if}
+                {/for}
+            </div>
+            {/if}
+
+            <div class="flow-legend">
+                <div class="legend-item"><div class="legend-color" style="background:#51cf66"></div><span>Recebido</span></div>
+                <div class="legend-item"><div class="legend-color" style="background:#04bea1;opacity:0.7"></div><span>Será Recebido</span></div>
+                <div class="legend-item"><div class="legend-color" style="background:#ff6b6b"></div><span>Gasto</span></div>
+                <div class="legend-item"><div class="legend-color" style="background:#ffa94d;opacity:0.7"></div><span>Será Gasto</span></div>
+                <div class="legend-item"><div class="legend-color" style="background:#748ffc"></div><span>Previsto (fixas)</span></div>
+            </div>
         </div>
 
         <!-- Main Two-Column Grid: Year Chart + Budgets -->
@@ -752,6 +892,7 @@
                 <h2 class="section-heading">
                     <span class="section-heading-accent"></span>
                     Visão Anual: {data.yearProjectedBalanceFormatted}
+                    <span class="section-heading-sub">· Guardado {data.yearSavedReserveFormatted} · Investido {data.yearSavedInvestFormatted}</span>
                 </h2>
                 <div class="chart-legend">
                     <div class="legend-item">
@@ -769,6 +910,10 @@
                     <div class="legend-item">
                         <div class="legend-color" style="background:#ffa94d;opacity:0.7"></div>
                         <span>Será Gasto</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background:#748ffc"></div>
+                        <span>Guardado/Investido</span>
                     </div>
                     <div class="legend-item">
                         <div class="legend-color" style="background:#4c6ef5"></div>
@@ -869,9 +1014,36 @@
                 <div class="account-item">
                     <span class="account-name">{account.name}</span>
                     <span class="account-balance {#if account.isNegative}negative{/if}">{account.balanceFormatted}</span>
+                    {#if account.hasLimit}
+                    <span class="account-limit">Disponível: {account.availableFormatted} de {account.limitFormatted}</span>
+                    {/if}
                 </div>
                 {/for}
             </div>
+            {/if}
+        </section>
+
+        <!-- Debts -->
+        <section class="panel panel-debts">
+            <h2 class="section-heading">
+                <span class="section-heading-accent"></span>
+                Dívidas
+            </h2>
+            <div class="debts-total">
+                <span class="debts-total-label">Total em Dívidas</span>
+                <span class="debts-total-value">{data.totalDebtFormatted}</span>
+            </div>
+            {#if data.hasDebts}
+            <div class="debts-grid">
+                {#for debt in data.debts}
+                <div class="debt-item">
+                    <span class="debt-name">{debt.name}</span>
+                    <span class="debt-owed">{debt.owedFormatted}</span>
+                </div>
+                {/for}
+            </div>
+            {#else}
+            <p class="debts-empty">Nenhuma dívida cadastrada ainda.</p>
             {/if}
         </section>
 
@@ -1136,7 +1308,8 @@
                 receivedNow:    {m.receivedNow},
                 receivedFuture: {m.receivedFuture},
                 spentNow:       {m.spentNow},
-                spentFuture:    {m.spentFuture}
+                spentFuture:    {m.spentFuture},
+                saved:          {m.saved}
             }
             {#if m_count < data.monthlyFinancialData.size},{/if}
             {/for}
@@ -1157,6 +1330,7 @@
                     { label: 'Será Recebido', data: yearlyData.map(d=>d.receivedFuture), backgroundColor: 'rgba(4,190,161,0.55)', stack: 'income',  borderRadius: 3 },
                     { label: 'Gasto',         data: yearlyData.map(d=>d.spentNow),       backgroundColor: '#ff6b6b',              stack: 'expense', borderRadius: 3 },
                     { label: 'Será Gasto',    data: yearlyData.map(d=>d.spentFuture),    backgroundColor: 'rgba(255,169,77,0.65)',stack: 'expense', borderRadius: 3 },
+                    { label: 'Guardado/Investido', data: yearlyData.map(d=>d.saved),     backgroundColor: '#748ffc',              stack: 'saved',   borderRadius: 3 },
                     {
                         label: 'Saldo Projetado',
                         data: projectedBalance,

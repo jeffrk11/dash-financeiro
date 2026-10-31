@@ -40,8 +40,8 @@ public class FireflyClient {
      * Busca todas as contas do Firefly
      */
     public List<Account> getAccounts() {
-        String url = fireflyApiUrl + "/accounts?type=asset";
-        
+        String url = fireflyApiUrl + "/accounts?type=asset&limit=300";
+
         Response response = client.target(url)
                 .request(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + fireflyApiToken)
@@ -55,10 +55,54 @@ public class FireflyClient {
     }
 
     /**
+     * Busca os passivos (empréstimos, financiamentos, dívidas) do Firefly.
+     */
+    public List<Account> getLiabilities() {
+        String url = fireflyApiUrl + "/accounts?type=liability&limit=300";
+
+        Response response = client.target(url)
+                .request(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + fireflyApiToken)
+                .get();
+
+        if (response.getStatus() == 200) {
+            String json = response.readEntity(String.class);
+            return parseAccounts(json);
+        }
+        return new ArrayList<>();
+    }
+
+    /**
+     * Busca todas as transações de uma categoria (sem filtro de período — usado pra
+     * calcular a média histórica das despesas "fixas" que não têm valor/data fixos,
+     * tipo o cartão de crédito com pagamento em percentual).
+     */
+    public List<Transaction> getTransactionsByCategory(String categoryId) {
+        // limit alto porque isso busca o histórico do ano inteiro de uma vez — sem ele a
+        // API pagina em 100 por página e a chamada só pega a primeira (ver getTransactions).
+        String url = fireflyApiUrl + "/categories/" + categoryId + "/transactions?limit=300";
+
+        Response response = client.target(url)
+                .request(MediaType.APPLICATION_JSON)
+                .header("Authorization", "Bearer " + fireflyApiToken)
+                .get();
+
+        if (response.getStatus() == 200) {
+            String json = response.readEntity(String.class);
+            return parseTransactions(json);
+        }
+        return new ArrayList<>();
+    }
+
+    /**
      * Busca todas as transações do mês
      */
     public List<Transaction> getTransactions(LocalDate startDate, LocalDate endDate) {
-        String url = fireflyApiUrl + "/transactions?start=" + startDate + "&end=" + endDate;
+        // limit alto pelo mesmo motivo: a API do Firefly pagina em 100 por padrão, e sem
+        // isso meses com mais de 100 lançamentos perdem silenciosamente o resto (descoberto
+        // com o salário de setembro sumindo — 09/2026 tinha 107 grupos, salário estava na
+        // página 2) — 2026-10-31.
+        String url = fireflyApiUrl + "/transactions?start=" + startDate + "&end=" + endDate + "&limit=300";
         
         Response response = client.target(url)
                 .request(MediaType.APPLICATION_JSON)
@@ -76,7 +120,7 @@ public class FireflyClient {
      * Busca todos os budgets
      */
     public List<Budget> getBudgets() {
-        String url = fireflyApiUrl + "/budgets";
+        String url = fireflyApiUrl + "/budgets?limit=300";
         
         Response response = client.target(url)
                 .request(MediaType.APPLICATION_JSON)
@@ -91,7 +135,7 @@ public class FireflyClient {
     }
 
     public List<Recurrence> getRecurrences(YearMonth currentSelection) {
-        String url = fireflyApiUrl + "/recurrences";
+        String url = fireflyApiUrl + "/recurrences?limit=300";
 
         Response response = client.target(url)
                 .request(MediaType.APPLICATION_JSON)
@@ -295,8 +339,12 @@ public class FireflyClient {
                         if (attributes.has("current_balance") && !attributes.get("current_balance").isNull()) {
                             balance = new BigDecimal(attributes.get("current_balance").asText("0.00"));
                         }
-                        
-                        accounts.add(new Account(id, name, type, balance));
+
+                        Account account = new Account(id, name, type, balance);
+                        if (attributes.has("virtual_balance") && !attributes.get("virtual_balance").isNull()) {
+                            account.virtualBalance = new BigDecimal(attributes.get("virtual_balance").asText("0.00"));
+                        }
+                        accounts.add(account);
                     }
                 }
             }
@@ -384,6 +432,8 @@ public class FireflyClient {
         public String name;
         public String type;
         public BigDecimal balance;
+        /** Pra contas de cartão de crédito: usamos esse campo como "limite" (truque, já que o Firefly não tem campo nativo de limite). */
+        public BigDecimal virtualBalance;
 
         public Account() {}
         public Account(String id, String name, String type, BigDecimal balance) {

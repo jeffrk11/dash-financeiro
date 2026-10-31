@@ -11,6 +11,10 @@ import java.util.Locale;
 public class AccountDTO {
     public String name;
     public BigDecimal balance;
+    /** Dinheiro guardado de propósito (poupança/investimento) — não entra na conta de "livre pra gastar". */
+    public boolean reserve;
+    /** Limite (cartão de crédito) guardado no campo virtual_balance do Firefly, por falta de campo nativo pra isso. */
+    public BigDecimal limit;
 
     private static final DecimalFormat currencyFormatter =
         new DecimalFormat("0.00", new DecimalFormatSymbols(new Locale("pt", "BR")));
@@ -38,5 +42,33 @@ public class AccountDTO {
 
     public boolean getIsNegative() {
         return balance != null && balance.compareTo(BigDecimal.ZERO) < 0;
+    }
+
+    public boolean getReserve() {
+        return reserve;
+    }
+
+    public void setReserve(boolean reserve) {
+        this.reserve = reserve;
+    }
+
+    public boolean getHasLimit() {
+        return limit != null && limit.compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    public String getLimitFormatted() {
+        return limit != null ? "€" + currencyFormatter.format(limit) : "€0,00";
+    }
+
+    /** Limite menos o quanto já está "gasto" (saldo negativo da conta). */
+    public BigDecimal getAvailable() {
+        if (limit == null) return BigDecimal.ZERO;
+        BigDecimal used = balance != null && balance.compareTo(BigDecimal.ZERO) < 0 ? balance.abs() : BigDecimal.ZERO;
+        BigDecimal available = limit.subtract(used);
+        return available.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : available;
+    }
+
+    public String getAvailableFormatted() {
+        return "€" + currencyFormatter.format(getAvailable());
     }
 }

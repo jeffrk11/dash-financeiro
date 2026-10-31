@@ -71,12 +71,21 @@ public class DashboardService {
             List<FireflyClient.Transaction> transactions = getMonthlyTransactions(startOfMonth, endOfMonth, currentSelection);
             List<MonthlyFinancialData> monthlyFinancialData = getYearlyData(currentSelection.getYear());
             List<FireflyClient.Account> accounts = fireflyClient.getAccounts();
+            List<FireflyClient.Account> liabilities = fireflyClient.getLiabilities();
+            // Categoria "fixas" (id 3) = só gastos recorrentes, sem pontual nela — serve
+            // de histórico pra prever os que ainda não aconteceram este mês.
+            List<FireflyClient.Transaction> fixasHistory = fireflyClient.getTransactionsByCategory("3");
+            // Categorias "salario" (id 8) e "rendimentos" (id 20) — mesma lógica de
+            // previsão pro lado das entradas (ex: salário alimentação, juros poupança).
+            List<FireflyClient.Transaction> incomeHistory = new ArrayList<>();
+            incomeHistory.addAll(fireflyClient.getTransactionsByCategory("8"));
+            incomeHistory.addAll(fireflyClient.getTransactionsByCategory("20"));
 
             return dashboardMapper.mapFromFirefly(
                     transactions,
                     budgetsList.stream()
                         .collect(Collectors.toMap(b -> b.name, b -> b)),
-                    today, monthlyFinancialData, accounts);
+                    today, monthlyFinancialData, accounts, liabilities, fixasHistory, incomeHistory);
 
         } catch (Exception e) {
             System.err.println("Erro ao buscar dados do Firefly: " + e.getMessage());
