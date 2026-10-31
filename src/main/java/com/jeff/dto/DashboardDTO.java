@@ -16,6 +16,7 @@ public class DashboardDTO {
     public List<AccountDTO> accounts;
     public List<DebtDTO> debts;
     public List<PredictedExpenseDTO> predictedRecurring;
+    public List<FutureIncomeDTO> futureIncome;
     public SankeyDTO sankey;
     public List<MonthlyFinancialData> monthlyFinancialData;
     public BigDecimal yearProjectedBalance;
@@ -88,6 +89,18 @@ public class DashboardDTO {
         return "€" + currencyFormatter.format(getTotalPredictedRecurring());
     }
 
+    public List<FutureIncomeDTO> getFutureIncome() {
+        return futureIncome;
+    }
+
+    public void setFutureIncome(List<FutureIncomeDTO> futureIncome) {
+        this.futureIncome = futureIncome;
+    }
+
+    public boolean getHasFutureIncome() {
+        return futureIncome != null && !futureIncome.isEmpty();
+    }
+
     public BigDecimal getTotalDebt() {
         if (debts == null) return BigDecimal.ZERO;
         BigDecimal total = BigDecimal.ZERO;
@@ -131,16 +144,31 @@ public class DashboardDTO {
     }
 
     /**
-     * O número que realmente importa: saldo das contas do dia a dia, menos o que já se
-     * sabe que vai sair até o fim do mês (contas recorrentes, parcelas) e o que se espera
-     * que saia mas ainda não tem valor/data exatos (média da categoria "fixas"), mais o
-     * que já se sabe que vai entrar (reembolsos, etc. — não o salário, só lançado dia 1).
+     * O número que realmente importa: quanto ainda cabe gastar no orçamento de
+     * "variáveis" este mês. Deliberadamente NÃO é saldo de conta — o usuário joga todo
+     * o dinheiro na poupança e vai puxando de lá conforme precisa, então saldo de conta
+     * "disponível" sempre ia mostrar milhares de euros, o que não significa nada como
+     * sinal de "posso gastar agora" (2026-10-31). As fixas já têm orçamento próprio
+     * (budget-fixas) e teoricamente já estão cobertas, por isso ficam de fora daqui —
+     * esse número é só o teto de gasto variável menos o que já foi gasto/está agendado.
+     * Não clampa em zero (ao contrário do "Disponível" mostrado no card do orçamento):
+     * estourar o orçamento de variáveis deve aparecer como negativo, não sumir em €0.
      */
     public BigDecimal getSafeToSpend() {
-        if (summary == null) return getSpendableBalance();
-        BigDecimal spentFuture = summary.spentFuture != null ? summary.spentFuture : BigDecimal.ZERO;
-        BigDecimal receivedFuture = summary.receivedFuture != null ? summary.receivedFuture : BigDecimal.ZERO;
-        return getSpendableBalance().subtract(spentFuture).subtract(getTotalPredictedRecurring()).add(receivedFuture);
+        BudgetDTO variable = getVariableBudget();
+        if (variable == null) return BigDecimal.ZERO;
+        BigDecimal total = variable.total != null ? variable.total : BigDecimal.ZERO;
+        BigDecimal spent = variable.spent != null ? variable.spent : BigDecimal.ZERO;
+        BigDecimal future = variable.future != null ? variable.future : BigDecimal.ZERO;
+        return total.subtract(spent).subtract(future);
+    }
+
+    public BudgetDTO getVariableBudget() {
+        if (budgets == null) return null;
+        for (BudgetDTO b : budgets) {
+            if ("budget-variaveis".equals(b.name)) return b;
+        }
+        return null;
     }
 
     public String getSafeToSpendFormatted() {
@@ -301,6 +329,28 @@ public class DashboardDTO {
         }
 
         return deposit.subtract(withdraw);
+    }
+
+    public BigDecimal getYearSavedReserve() {
+        if (monthlyFinancialData == null) return BigDecimal.ZERO;
+        BigDecimal total = BigDecimal.ZERO;
+        for (MonthlyFinancialData month : monthlyFinancialData) total = total.add(month.getSavedReserve());
+        return total;
+    }
+
+    public String getYearSavedReserveFormatted() {
+        return formatSigned(getYearSavedReserve());
+    }
+
+    public BigDecimal getYearSavedInvest() {
+        if (monthlyFinancialData == null) return BigDecimal.ZERO;
+        BigDecimal total = BigDecimal.ZERO;
+        for (MonthlyFinancialData month : monthlyFinancialData) total = total.add(month.getSavedInvest());
+        return total;
+    }
+
+    public String getYearSavedInvestFormatted() {
+        return formatSigned(getYearSavedInvest());
     }
 }
 
