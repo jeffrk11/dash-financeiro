@@ -40,7 +40,7 @@ public class FireflyClient {
      * Busca todas as contas do Firefly
      */
     public List<Account> getAccounts() {
-        String url = fireflyApiUrl + "/accounts?type=asset";
+        String url = fireflyApiUrl + "/accounts?type=asset&limit=300";
 
         Response response = client.target(url)
                 .request(MediaType.APPLICATION_JSON)
@@ -58,7 +58,7 @@ public class FireflyClient {
      * Busca os passivos (empréstimos, financiamentos, dívidas) do Firefly.
      */
     public List<Account> getLiabilities() {
-        String url = fireflyApiUrl + "/accounts?type=liability";
+        String url = fireflyApiUrl + "/accounts?type=liability&limit=300";
 
         Response response = client.target(url)
                 .request(MediaType.APPLICATION_JSON)
@@ -78,7 +78,9 @@ public class FireflyClient {
      * tipo o cartão de crédito com pagamento em percentual).
      */
     public List<Transaction> getTransactionsByCategory(String categoryId) {
-        String url = fireflyApiUrl + "/categories/" + categoryId + "/transactions";
+        // limit alto porque isso busca o histórico do ano inteiro de uma vez — sem ele a
+        // API pagina em 100 por página e a chamada só pega a primeira (ver getTransactions).
+        String url = fireflyApiUrl + "/categories/" + categoryId + "/transactions?limit=300";
 
         Response response = client.target(url)
                 .request(MediaType.APPLICATION_JSON)
@@ -96,7 +98,11 @@ public class FireflyClient {
      * Busca todas as transações do mês
      */
     public List<Transaction> getTransactions(LocalDate startDate, LocalDate endDate) {
-        String url = fireflyApiUrl + "/transactions?start=" + startDate + "&end=" + endDate;
+        // limit alto pelo mesmo motivo: a API do Firefly pagina em 100 por padrão, e sem
+        // isso meses com mais de 100 lançamentos perdem silenciosamente o resto (descoberto
+        // com o salário de setembro sumindo — 09/2026 tinha 107 grupos, salário estava na
+        // página 2) — 2026-10-31.
+        String url = fireflyApiUrl + "/transactions?start=" + startDate + "&end=" + endDate + "&limit=300";
         
         Response response = client.target(url)
                 .request(MediaType.APPLICATION_JSON)
@@ -114,7 +120,7 @@ public class FireflyClient {
      * Busca todos os budgets
      */
     public List<Budget> getBudgets() {
-        String url = fireflyApiUrl + "/budgets";
+        String url = fireflyApiUrl + "/budgets?limit=300";
         
         Response response = client.target(url)
                 .request(MediaType.APPLICATION_JSON)
@@ -129,7 +135,7 @@ public class FireflyClient {
     }
 
     public List<Recurrence> getRecurrences(YearMonth currentSelection) {
-        String url = fireflyApiUrl + "/recurrences";
+        String url = fireflyApiUrl + "/recurrences?limit=300";
 
         Response response = client.target(url)
                 .request(MediaType.APPLICATION_JSON)
