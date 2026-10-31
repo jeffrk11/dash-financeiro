@@ -12,6 +12,10 @@ public class MonthlyFinancialData {
         BigDecimal spentFuture;
         /** Quanto foi pra poupança/investimento este mês (líquido — já descontando o que voltou). */
         BigDecimal saved;
+        /** Fatia de "saved" que foi pro budget-reserva (poupança). */
+        BigDecimal savedReserve;
+        /** Fatia de "saved" que foi pro budget-investir (investimento). */
+        BigDecimal savedInvest;
 
         public MonthlyFinancialData(String month) {
             this.month = month;
@@ -20,6 +24,8 @@ public class MonthlyFinancialData {
             this.spentNow = new BigDecimal(0);
             this.spentFuture = new BigDecimal(0);
             this.saved = new BigDecimal(0);
+            this.savedReserve = new BigDecimal(0);
+            this.savedInvest = new BigDecimal(0);
         }
 
     public void buildMonthlyFinancialData(List<FireflyClient.Transaction> transactions) {
@@ -43,13 +49,31 @@ public class MonthlyFinancialData {
                 } else {
                     spentFuture = spentFuture.add(tx.amount.abs());
                 }
+                // Investimento externo (corretora/cripto) não é uma conta rastreada no
+                // Firefly, então sai como "withdrawal" pro Cash account, não como
+                // "transfer" interno igual a poupança — ainda assim conta como investido
+                // (descoberto 2026-10-31: Investido aparecia sempre €0,00 por só olhar
+                // transfers, igual a reserva).
+                if (tx.tags != null && tx.tags.contains("budget-investir")) {
+                    savedInvest = savedInvest.add(tx.amount.abs());
+                    saved = saved.add(tx.amount.abs());
+                }
             } else if (tx.type.equals("transfer") && tx.tags != null) {
                 // Mesma convenção de tag usada nos orçamentos "reserva"/"investir":
-                // "saving" = indo pra poupança/investimento, "expending" = voltando de lá.
+                // "saving" = indo pra poupança/investimento, "expending" = voltando de lá,
+                // sempre junto com a tag do orçamento (budget-reserva ou budget-investir)
+                // que diz pra qual das duas fatias essa movimentação conta.
+                BigDecimal delta = BigDecimal.ZERO;
                 if (tx.tags.contains("saving")) {
-                    saved = saved.add(tx.amount.abs());
+                    delta = tx.amount.abs();
                 } else if (tx.tags.contains("expending")) {
-                    saved = saved.subtract(tx.amount.abs());
+                    delta = tx.amount.abs().negate();
+                }
+                saved = saved.add(delta);
+                if (tx.tags.contains("budget-reserva")) {
+                    savedReserve = savedReserve.add(delta);
+                } else if (tx.tags.contains("budget-investir")) {
+                    savedInvest = savedInvest.add(delta);
                 }
             }
         }
@@ -98,5 +122,21 @@ public class MonthlyFinancialData {
 
     public void setSaved(BigDecimal saved) {
         this.saved = saved;
+    }
+
+    public BigDecimal getSavedReserve() {
+        return savedReserve;
+    }
+
+    public void setSavedReserve(BigDecimal savedReserve) {
+        this.savedReserve = savedReserve;
+    }
+
+    public BigDecimal getSavedInvest() {
+        return savedInvest;
+    }
+
+    public void setSavedInvest(BigDecimal savedInvest) {
+        this.savedInvest = savedInvest;
     }
 }
