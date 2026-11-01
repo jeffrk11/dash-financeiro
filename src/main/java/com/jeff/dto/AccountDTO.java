@@ -60,15 +60,30 @@ public class AccountDTO {
         return limit != null ? "€" + currencyFormatter.format(limit) : "€0,00";
     }
 
+    /** Quanto já está "gasto" no cartão (saldo negativo da conta), sempre positivo. */
+    public BigDecimal getOwed() {
+        return balance != null && balance.compareTo(BigDecimal.ZERO) < 0 ? balance.abs() : BigDecimal.ZERO;
+    }
+
+    public String getOwedFormatted() {
+        return "€" + currencyFormatter.format(getOwed());
+    }
+
     /** Limite menos o quanto já está "gasto" (saldo negativo da conta). */
     public BigDecimal getAvailable() {
         if (limit == null) return BigDecimal.ZERO;
-        BigDecimal used = balance != null && balance.compareTo(BigDecimal.ZERO) < 0 ? balance.abs() : BigDecimal.ZERO;
-        BigDecimal available = limit.subtract(used);
+        BigDecimal available = limit.subtract(getOwed());
         return available.compareTo(BigDecimal.ZERO) < 0 ? BigDecimal.ZERO : available;
     }
 
     public String getAvailableFormatted() {
         return "€" + currencyFormatter.format(getAvailable());
+    }
+
+    /** % do limite já usado, pra desenhar a barra (0-100, nunca passa de 100 mesmo se estourar o limite). */
+    public double getUsedPercentage() {
+        if (limit == null || limit.compareTo(BigDecimal.ZERO) <= 0) return 0;
+        double pct = getOwed().doubleValue() / limit.doubleValue() * 100;
+        return Math.min(100, Math.max(0, pct));
     }
 }

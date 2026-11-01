@@ -20,6 +20,7 @@ public class DashboardDTO {
     public List<FutureIncomeDTO> investmentBreakdown;
     public List<AccountDeltaDTO> accountDeltas;
     public SankeyDTO sankey;
+    public SankeyDTO sankeyAnnual;
     public List<MonthlyFinancialData> monthlyFinancialData;
     public BigDecimal yearProjectedBalance;
 

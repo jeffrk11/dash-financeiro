@@ -43,8 +43,12 @@ public class DashboardMapper {
             List<FireflyClient.Account> liabilities,
             List<FireflyClient.Transaction> fixasHistory,
             List<FireflyClient.Transaction> incomeHistory,
-            List<FireflyClient.Transaction> investmentHistory) {
+            List<FireflyClient.Transaction> investmentHistory,
+            List<FireflyClient.Transaction> yearTransactions,
+            LocalDate startOfYear) {
         today = LocalDate.now();
+        liabilityAccountNames = liabilities == null ? Collections.emptySet()
+                : liabilities.stream().map(a -> a.name).collect(Collectors.toSet());
 
         LocalDate startOfMonth = referenceDate.withDayOfMonth(1);
          // Use sempre o dia de hoje, não a data de referência
@@ -52,8 +56,9 @@ public class DashboardMapper {
         SummaryDTO summary = buildSummary(transactions);
         List<BudgetDTO> budgetDTOs = buildBudgets(budgets, transactions);
         SankeyDTO sankey = buildSankey(transactions, startOfMonth);
+        SankeyDTO sankeyAnnual = buildSankey(yearTransactions, startOfYear);
         List<AccountDTO> accountDTOs = buildAccounts(accounts);
-        List<DebtDTO> debtDTOs = buildDebts(liabilities);
+        List<DebtDTO> debtDTOs = buildDebts(liabilities, yearTransactions, startOfYear.getYear());
         List<PredictedExpenseDTO> predictedDTOs = buildPredictedRecurring(fixasHistory, YearMonth.from(startOfMonth));
         List<FutureIncomeDTO> futureIncomeDTOs = buildFutureIncome(transactions, incomeHistory, YearMonth.from(startOfMonth));
         List<FutureIncomeDTO> investmentBreakdownDTOs = buildGroupedByDescription(investmentHistory);
@@ -64,6 +69,7 @@ public class DashboardMapper {
         dto.summary = summary;
         dto.budgets = budgetDTOs;
         dto.sankey = sankey;
+        dto.sankeyAnnual = sankeyAnnual;
         dto.monthlyFinancialData = monthlyFinancialData;
         dto.yearProjectedBalance = dto.calculateYearBalance();
         dto.accounts = accountDTOs;
@@ -138,6 +144,7 @@ public class DashboardMapper {
         for (FireflyClient.Transaction tx : transactions) {
             if (tx.date == null || tx.type.equals("transfer")) continue;
             if ("withdrawal".equals(tx.type)) continue;
+            if (isVirtual(tx) || touchesLiability(tx)) continue;
             if (tx.date.isBefore(today) || tx.date.isEqual(today)) continue;
 
             byDescription.merge(tx.description, tx.amount, BigDecimal::add);
@@ -184,6 +191,32 @@ public class DashboardMapper {
 
     private boolean excluidaDaPrevisao(FireflyClient.Transaction tx) {
         return tx.tags != null && tx.tags.contains(TAG_EXCLUIR_PREVISAO);
+    }
+
+    /**
+     * Tag pra lançamentos puramente contábeis (ex: amortização de capital de dívida,
+     * lançada como deposit/withdrawal só pra mexer o saldo de um passivo) que não são
+     * renda nem gasto de verdade — o Firefly não deixa usar `transfer` quando uma ponta é
+     * um passivo, então o tipo fica deposit/withdrawal mesmo, mas isso não pode contar em
+     * Entradas/Saídas. Reaproveitável em qualquer ajuste futuro desse tipo, não é
+     * específica do financiamento do carro.
+     */
+    private static final String TAG_VIRTUAL = "virtual";
+
+    private boolean isVirtual(FireflyClient.Transaction tx) {
+        return tx.tags != null && tx.tags.contains(TAG_VIRTUAL);
+    }
+
+    /**
+     * Transações que tocam uma conta de passivo (ex: amortização de capital de
+     * financiamento) são só contabilidade interna — mais robusto que depender só da tag
+     * `virtual` (fácil de esquecer de aplicar numa transação nova). Conjunto montado uma
+     * vez por chamada de mapFromFirefly.
+     */
+    private Set<String> liabilityAccountNames = Collections.emptySet();
+
+    private boolean touchesLiability(FireflyClient.Transaction tx) {
+        return liabilityAccountNames.contains(tx.sourceName) || liabilityAccountNames.contains(tx.destinationName);
     }
 
     /**
@@ -371,12 +404,72 @@ public class DashboardMapper {
     /**
      * Mapeia os passivos (empréstimos/financiamentos) do Firefly, maior dívida primeiro.
      */
-    private List<DebtDTO> buildDebts(List<FireflyClient.Account> liabilities) {
+    private List<DebtDTO> buildDebts(List<FireflyClient.Account> liabilities, List<FireflyClient.Transaction> yearTransactions, int year) {
         if (liabilities == null) return new ArrayList<>();
         return liabilities.stream()
-                .map(a -> new DebtDTO(a.name, a.balance))
+                .map(a -> {
+                    boolean isCreditDirection = "credit".equals(a.liabilityDirection);
+                    BigDecimal limit = a.virtualBalance;
+                    // "credit" direction (ex: cartão de crédito modelado como passivo, de
+                    // propósito): balance é crédito DISPONÍVEL, não dívida — o quanto se
+                    // deve é o complemento do limite, não o balance direto.
+                    BigDecimal owed = isCreditDirection && limit != null
+                            ? limit.subtract(a.balance)
+                            : a.balance;
+
+                    DebtDTO dto = new DebtDTO(a.name, owed);
+                    dto.limit = limit;
+
+                    List<BigDecimal> rawHistory = buildDebtMonthlyBalances(a, yearTransactions, year);
+                    if (isCreditDirection && limit != null) {
+                        List<BigDecimal> owedHistory = new ArrayList<>();
+                        for (BigDecimal available : rawHistory) {
+                            owedHistory.add(available == null ? null : limit.subtract(available).abs());
+                        }
+                        dto.setMonthlyBalances(owedHistory);
+                    } else {
+                        dto.setMonthlyBalances(rawHistory);
+                    }
+                    return dto;
+                })
                 .sorted((a, b) -> b.owed.compareTo(a.owed))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Reconstrói o saldo devedor de uma dívida no fim de cada mês do ano, a partir do
+     * opening_balance (ponto de partida real) + todas as transações que tocam essa conta
+     * no ano. null pros meses antes da conta existir (opening_balance_date) — o gráfico
+     * só desenha a partir daí.
+     */
+    private List<BigDecimal> buildDebtMonthlyBalances(FireflyClient.Account liability, List<FireflyClient.Transaction> yearTransactions, int year) {
+        List<BigDecimal> result = new ArrayList<>();
+        if (liability.openingBalance == null || liability.openingBalanceDate == null || yearTransactions == null) {
+            for (int i = 0; i < 12; i++) result.add(null);
+            return result;
+        }
+
+        List<FireflyClient.Transaction> touching = yearTransactions.stream()
+                .filter(tx -> tx.date != null && tx.amount != null
+                        && (liability.name.equals(tx.sourceName) || liability.name.equals(tx.destinationName)))
+                .sorted((a, b) -> a.date.compareTo(b.date))
+                .collect(Collectors.toList());
+
+        for (int month = 1; month <= 12; month++) {
+            LocalDate monthEnd = YearMonth.of(year, month).atEndOfMonth();
+            if (monthEnd.isBefore(liability.openingBalanceDate)) {
+                result.add(null);
+                continue;
+            }
+            BigDecimal balance = liability.openingBalance;
+            for (FireflyClient.Transaction tx : touching) {
+                if (tx.date.isAfter(monthEnd)) break;
+                if (liability.name.equals(tx.destinationName)) balance = balance.add(tx.amount);
+                if (liability.name.equals(tx.sourceName)) balance = balance.subtract(tx.amount);
+            }
+            result.add(balance.abs());
+        }
+        return result;
     }
 
     /**
@@ -392,7 +485,8 @@ public class DashboardMapper {
         
         for (FireflyClient.Transaction tx : transactions) {
             if (tx.date == null) continue;
-            
+            if (isVirtual(tx) || touchesLiability(tx)) continue;
+
             boolean isPast = tx.date.isBefore(today) || tx.date.isEqual(today);
             boolean isWithdrawal = "withdrawal".equals(tx.type);
 
@@ -522,7 +616,8 @@ public class DashboardMapper {
         
         for (FireflyClient.Transaction tx : transactions) {
             if (tx.date == null || tx.date.isBefore(startOfMonth)) continue;
-            
+            if (isVirtual(tx) || touchesLiability(tx)) continue;
+
             boolean isDeposit = "deposit".equals(tx.type);
             boolean isWithdrawal = "withdrawal".equals(tx.type);
             

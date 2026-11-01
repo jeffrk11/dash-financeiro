@@ -12,6 +12,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -68,10 +69,30 @@ public class DashboardService {
             }
 
 
-            List<FireflyClient.Transaction> transactions = getMonthlyTransactions(startOfMonth, endOfMonth, currentSelection);
-            List<MonthlyFinancialData> monthlyFinancialData = getYearlyData(currentSelection.getYear());
+            // Busca o ano inteiro (transações reais + ocorrências de recorrência) de uma
+            // vez só, em vez de uma chamada por mês — isso alimenta tanto o mês visualizado
+            // quanto a Visão Anual inteira, reduzindo ~26 chamadas (12 meses × transações +
+            // recorrências, mais o mês visualizado em separado) pra só 2. Precisa ser o ano
+            // civil inteiro (não só até hoje) porque entradas já lançadas com data futura
+            // (ex: salário do dia 1 do mês seguinte) alimentam o "Será Recebido" e os meses
+            // futuros da Visão Anual.
+            LocalDate startOfYear = LocalDate.of(currentSelection.getYear(), 1, 1);
+            LocalDate endOfYear = LocalDate.of(currentSelection.getYear(), 12, 31);
+            log.info("Buscando o ano inteiro de " + currentSelection.getYear() + " de uma vez (" + startOfYear + " a " + endOfYear + ")");
+            List<FireflyClient.Transaction> yearTransactions = fireflyClient.getTransactions(startOfYear, endOfYear);
+            yearTransactions.addAll(fireflyClient.getRecurrences(startOfYear, endOfYear));
+
+            List<FireflyClient.Transaction> transactions = yearTransactions.stream()
+                    .filter(tx -> tx.date != null && YearMonth.from(tx.date).equals(currentSelection))
+                    .collect(Collectors.toList());
             List<FireflyClient.Account> accounts = fireflyClient.getAccounts();
             List<FireflyClient.Account> liabilities = fireflyClient.getLiabilities();
+            // Transações que tocam uma conta de passivo (ex: amortização de capital de
+            // financiamento) são só contabilidade interna pra mexer o saldo da dívida —
+            // nunca renda/gasto real, mesmo quando o Firefly as classifica como
+            // deposit/withdrawal (não dá pra usar transfer quando uma ponta é passivo).
+            Set<String> liabilityAccountNames = liabilities.stream().map(a -> a.name).collect(Collectors.toSet());
+            List<MonthlyFinancialData> monthlyFinancialData = getYearlyData(currentSelection.getYear(), yearTransactions, liabilityAccountNames);
             // Categoria "fixas" (id 3) = só gastos recorrentes, sem pontual nela — serve
             // de histórico pra prever os que ainda não aconteceram este mês.
             List<FireflyClient.Transaction> fixasHistory = fireflyClient.getTransactionsByCategory("3");
@@ -89,7 +110,8 @@ public class DashboardService {
                     transactions,
                     budgetsList.stream()
                         .collect(Collectors.toMap(b -> b.name, b -> b)),
-                    today, monthlyFinancialData, accounts, liabilities, fixasHistory, incomeHistory, investmentHistory);
+                    today, monthlyFinancialData, accounts, liabilities, fixasHistory, incomeHistory, investmentHistory,
+                    yearTransactions, startOfYear);
 
         } catch (Exception e) {
             System.err.println("Erro ao buscar dados do Firefly: " + e.getMessage());
@@ -99,28 +121,16 @@ public class DashboardService {
         }
     }
 
-    private List<FireflyClient.Transaction> getMonthlyTransactions(LocalDate startOfMonth, LocalDate endOfMonth, YearMonth currentSelection){
-
-        log.info("Buscando dados para o período: " + startOfMonth + " até " + endOfMonth);
-
-        List<FireflyClient.Recurrence> recurrences = fireflyClient.getRecurrences(currentSelection);
-        List<FireflyClient.Transaction> transactions =
-                fireflyClient.getTransactions(startOfMonth, endOfMonth);
-
-        transactions.addAll(recurrences.stream().map(r -> r.transactions).flatMap(List::stream).toList());
-        return transactions;
-    }
-
-    private List<MonthlyFinancialData> getYearlyData(int year){
+    private List<MonthlyFinancialData> getYearlyData(int year, List<FireflyClient.Transaction> yearTransactions, Set<String> liabilityAccountNames){
         List<MonthlyFinancialData> yearlyData =  new ArrayList<>();
         IntStream.rangeClosed(1, 12).forEach(month -> {
             YearMonth ym = YearMonth.of(year, month);
             MonthlyFinancialData monthlyFinancialData = new MonthlyFinancialData(ym);
-            LocalDate startOfMonth = ym.atDay(1);
-            LocalDate endOfMonth = ym.atEndOfMonth();
 
-            List<FireflyClient.Transaction> transactions = getMonthlyTransactions(startOfMonth, endOfMonth, ym);
-            monthlyFinancialData.buildMonthlyFinancialData(transactions);
+            List<FireflyClient.Transaction> monthTransactions = yearTransactions.stream()
+                    .filter(tx -> tx.date != null && YearMonth.from(tx.date).equals(ym))
+                    .collect(Collectors.toList());
+            monthlyFinancialData.buildMonthlyFinancialData(monthTransactions, liabilityAccountNames);
             yearlyData.add(monthlyFinancialData);
         });
 
@@ -168,6 +178,7 @@ public class DashboardService {
         dto.summary = summary;
         dto.budgets = List.of(food, transport);
         dto.sankey = new SankeyDTO(BigDecimal.ZERO, List.of(), List.of());
+        dto.sankeyAnnual = new SankeyDTO(BigDecimal.ZERO, List.of(), List.of());
         dto.monthlyFinancialData = new ArrayList<>();
 
         return dto;

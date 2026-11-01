@@ -400,6 +400,65 @@
             font-size: 0.68rem;
             color: var(--text-muted);
         }
+        .card-limit-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(45, 45, 68, 0.6);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .card-limit-bar-used {
+            height: 100%;
+            background: linear-gradient(90deg, #ffa94d, #ff6b6b);
+            transition: width 0.4s ease;
+        }
+        .card-payoff-calc {
+            margin-top: 6px;
+            padding-top: 10px;
+            border-top: 1px solid rgba(45, 45, 68, 0.6);
+        }
+        .card-payoff-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .card-payoff-buttons .card-payoff-btn {
+            min-width: 44px;
+        }
+        /* Cartão de crédito dentro de Dívidas: card dedicado, se destaca das dívidas simples (empréstimos sem limite). */
+        .debt-item.has-limit {
+            grid-column: 1 / -1;
+            border-color: rgba(76, 110, 245, 0.5);
+            background: linear-gradient(135deg, rgba(76, 110, 245, 0.08), rgba(255,255,255,0.015));
+        }
+        .card-payoff-btn {
+            flex: 1;
+            padding: 5px 0;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            background: rgba(45, 45, 68, 0.6);
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .card-payoff-btn:hover {
+            background: rgba(76, 110, 245, 0.25);
+            color: var(--text-primary);
+        }
+        .card-payoff-btn.active {
+            background: #4c6ef5;
+            color: #fff;
+        }
+        .card-payoff-result {
+            margin-top: 8px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+        .card-payoff-value {
+            color: var(--text-primary);
+        }
 
         /* ─── Debts ───────────────────────────────────────────── */
         .debts-total {
@@ -449,6 +508,12 @@
             font-weight: 700;
             color: #ff6b6b;
         }
+        .debts-chart-wrapper {
+            position: relative;
+            width: 100%;
+            height: 180px;
+            margin-top: 16px;
+        }
         .debts-empty {
             font-size: 0.85rem;
             color: var(--text-muted);
@@ -463,7 +528,8 @@
         /* Plotly draws Sankey node labels with a black fill + white halo
            stroke by default, regardless of trace.textfont — override both
            directly on the SVG text so it reads cleanly on the dark theme. */
-        #sankey-chart text {
+        #sankey-chart text,
+        #sankey-chart-annual text {
             fill: #f8f8f8 !important;
             stroke: none !important;
         }
@@ -1107,7 +1173,19 @@
                     <span class="account-name">{account.name}</span>
                     <span class="account-balance {#if account.isNegative}negative{/if}">{account.balanceFormatted}</span>
                     {#if account.hasLimit}
+                    <div class="card-limit-bar"><div class="card-limit-bar-used" style="width: {account.usedPercentage}%"></div></div>
                     <span class="account-limit">Disponível: {account.availableFormatted} de {account.limitFormatted}</span>
+                    <div class="card-payoff-calc" data-owed="{account.owed}">
+                        <div class="card-payoff-buttons">
+                            <button type="button" class="card-payoff-btn" data-pct="5">5%</button>
+                            <button type="button" class="card-payoff-btn" data-pct="10">10%</button>
+                            <button type="button" class="card-payoff-btn" data-pct="25">25%</button>
+                            <button type="button" class="card-payoff-btn" data-pct="50">50%</button>
+                            <button type="button" class="card-payoff-btn" data-pct="75">75%</button>
+                            <button type="button" class="card-payoff-btn active" data-pct="100">100%</button>
+                        </div>
+                        <div class="card-payoff-result">Você pagaria <strong class="card-payoff-value">{account.owedFormatted}</strong> esse mês</div>
+                    </div>
                     {/if}
                 </div>
                 {/for}
@@ -1128,11 +1206,29 @@
             {#if data.hasDebts}
             <div class="debts-grid">
                 {#for debt in data.debts}
-                <div class="debt-item">
+                <div class="debt-item {#if debt.hasLimit}has-limit{/if}">
                     <span class="debt-name">{debt.name}</span>
                     <span class="debt-owed">{debt.owedFormatted}</span>
+                    {#if debt.hasLimit}
+                    <div class="card-limit-bar"><div class="card-limit-bar-used" style="width: {debt.usedPercentage}%"></div></div>
+                    <span class="account-limit">Disponível: {debt.availableFormatted} de {debt.limitFormatted}</span>
+                    <div class="card-payoff-calc" data-owed="{debt.owed}">
+                        <div class="card-payoff-buttons">
+                            <button type="button" class="card-payoff-btn" data-pct="5">5%</button>
+                            <button type="button" class="card-payoff-btn" data-pct="10">10%</button>
+                            <button type="button" class="card-payoff-btn" data-pct="25">25%</button>
+                            <button type="button" class="card-payoff-btn" data-pct="50">50%</button>
+                            <button type="button" class="card-payoff-btn" data-pct="75">75%</button>
+                            <button type="button" class="card-payoff-btn active" data-pct="100">100%</button>
+                        </div>
+                        <div class="card-payoff-result">Você pagaria <strong class="card-payoff-value">{debt.owedFormatted}</strong> esse mês</div>
+                    </div>
+                    {/if}
                 </div>
                 {/for}
+            </div>
+            <div class="debts-chart-wrapper">
+                <canvas id="debtsChart"></canvas>
             </div>
             {#else}
             <p class="debts-empty">Nenhuma dívida cadastrada ainda.</p>
@@ -1153,6 +1249,25 @@
                 </span>
                 <span style="display: inline-flex; align-items: center; gap: 6px;">
                     Gasto Total: <strong id="legend-expense">€0,00</strong>
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: #ff6b6b; display: inline-block;"></span>
+                </span>
+            </div>
+        </section>
+
+        <!-- Sankey Diagram Anual -->
+        <section class="panel panel-sankey">
+            <h2 class="section-heading">
+                <span class="section-heading-accent"></span>
+                Despesas por Categoria — Ano Inteiro
+            </h2>
+            <div id="sankey-chart-annual" style="width: 100%;"></div>
+            <div id="sankey-legend-annual" style="display: flex; justify-content: space-between; margin-top: 8px; padding: 0 12px; font-size: 0.85rem; color: var(--text-primary);">
+                <span style="display: inline-flex; align-items: center; gap: 6px;">
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background: #51cf66; display: inline-block;"></span>
+                    Renda Total: <strong id="legend-income-annual">€0,00</strong>
+                </span>
+                <span style="display: inline-flex; align-items: center; gap: 6px;">
+                    Gasto Total: <strong id="legend-expense-annual">€0,00</strong>
                     <span style="width: 10px; height: 10px; border-radius: 50%; background: #ff6b6b; display: inline-block;"></span>
                 </span>
             </div>
@@ -1229,41 +1344,19 @@
             updateMonthDisplay();
         }
 
-        // Renderizar o gráfico Sankey
-        function renderSankey() {
+        // Renderizar um gráfico Sankey — reaproveitada pro mensal (#sankey-chart) e pro
+        // anual (#sankey-chart-annual), só muda de onde vêm os dados e os ids dos elementos.
+        function renderSankey(sankeyData, chartElId, incomeElId, expenseElId) {
             try {
-                // Dados do Sankey vem do servidor em formato JSON via data attributes
-                const sankeyData = {
-                    totalIncome: parseFloat('{data.sankey.totalIncomeFormatted}'),
-                    incomeCategories: [
-                        {#for cat in data.sankey.incomeCategories}
-                        {
-                            name: '{cat.name}',
-                            amount: {cat.amount}
-                        }
-                        {#if cat_count < data.sankey.incomeCategories.size},{/if}
-                        {/for}
-                    ],
-                    expenseCategories: [
-                        {#for cat in data.sankey.expenseCategories}
-                        {
-                            name: '{cat.name}',
-                            amount: {cat.amount}
-                        }
-                        {#if cat_count < data.sankey.expenseCategories.size},{/if}
-                        {/for}
-                    ]
-                };
-
                 const fmt = (n) => '€' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
                 const totalExpense = sankeyData.expenseCategories.reduce((sum, c) => sum + parseFloat(c.amount), 0);
-                document.getElementById('legend-income').textContent = fmt(sankeyData.totalIncome);
-                document.getElementById('legend-expense').textContent = fmt(totalExpense);
+                document.getElementById(incomeElId).textContent = fmt(sankeyData.totalIncome);
+                document.getElementById(expenseElId).textContent = fmt(totalExpense);
 
                 if (!sankeyData || ((!sankeyData.incomeCategories || sankeyData.incomeCategories.length === 0) &&
                                      (!sankeyData.expenseCategories || sankeyData.expenseCategories.length === 0))) {
-                    document.getElementById('sankey-chart').innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">Sem dados de transações para este período</p>';
+                    document.getElementById(chartElId).innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">Sem dados de transações para este período</p>';
                     return;
                 }
 
@@ -1313,7 +1406,7 @@
 
                 // Se nenhuma categoria foi adicionada, mostra mensagem
                 if (source.length === 0) {
-                    document.getElementById('sankey-chart').innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">Sem dados de transações para este período</p>';
+                    document.getElementById(chartElId).innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">Sem dados de transações para este período</p>';
                     return;
                 }
 
@@ -1351,7 +1444,7 @@
                     plot_bgcolor: 'rgba(0,0,0,0)'
                 };
 
-                const sankeyChartEl = document.getElementById('sankey-chart');
+                const sankeyChartEl = document.getElementById(chartElId);
 
                 // Plotly inlines fill/stroke/text-shadow on every label itself (with
                 // !important), so only an inline !important of our own can beat it — and
@@ -1367,7 +1460,7 @@
                     // and it carries its own explicit fill — which wins over anything set
                     // on the parent <text>, important or not, since an element's own
                     // declared value always beats an inherited one. Must style it directly.
-                    document.querySelectorAll('#sankey-chart text, #sankey-chart textPath').forEach(el => {
+                    document.querySelectorAll('#' + chartElId + ' text, #' + chartElId + ' textPath').forEach(el => {
                         el.style.setProperty('fill', '#f8f8f8', 'important');
                         el.style.setProperty('stroke', 'none', 'important');
                         el.style.setProperty('text-shadow', 'none', 'important');
@@ -1375,7 +1468,7 @@
                     applyingSankeyTextStyle = false;
                 }
 
-                Plotly.newPlot('sankey-chart', data, layout, { responsive: true }).then(() => {
+                Plotly.newPlot(chartElId, data, layout, { responsive: true }).then(() => {
                     applySankeyTextStyle();
                     new MutationObserver(applySankeyTextStyle).observe(sankeyChartEl, {
                         attributes: true,
@@ -1386,12 +1479,116 @@
                 });
             } catch (error) {
                 console.error('Erro ao renderizar Sankey:', error);
-                document.getElementById('sankey-chart').innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">Erro ao carregar o gráfico</p>';
+                document.getElementById(chartElId).innerHTML = '<p style="text-align: center; padding: 40px; color: #999;">Erro ao carregar o gráfico</p>';
             }
         }
 
-        // Chama função de renderizar Sankey quando a página carrega
-        setTimeout(renderSankey, 100);
+        // Chama o gráfico Sankey (mensal e anual) quando a página carrega
+        function renderAllSankeys() {
+            const monthSankeyData = {
+                totalIncome: parseFloat('{data.sankey.totalIncomeFormatted}'),
+                incomeCategories: [
+                    {#for cat in data.sankey.incomeCategories}
+                    { name: '{cat.name}', amount: {cat.amount} }
+                    {#if cat_count < data.sankey.incomeCategories.size},{/if}
+                    {/for}
+                ],
+                expenseCategories: [
+                    {#for cat in data.sankey.expenseCategories}
+                    { name: '{cat.name}', amount: {cat.amount} }
+                    {#if cat_count < data.sankey.expenseCategories.size},{/if}
+                    {/for}
+                ]
+            };
+            const yearSankeyData = {
+                totalIncome: parseFloat('{data.sankeyAnnual.totalIncomeFormatted}'),
+                incomeCategories: [
+                    {#for cat in data.sankeyAnnual.incomeCategories}
+                    { name: '{cat.name}', amount: {cat.amount} }
+                    {#if cat_count < data.sankeyAnnual.incomeCategories.size},{/if}
+                    {/for}
+                ],
+                expenseCategories: [
+                    {#for cat in data.sankeyAnnual.expenseCategories}
+                    { name: '{cat.name}', amount: {cat.amount} }
+                    {#if cat_count < data.sankeyAnnual.expenseCategories.size},{/if}
+                    {/for}
+                ]
+            };
+            renderSankey(monthSankeyData, 'sankey-chart', 'legend-income', 'legend-expense');
+            renderSankey(yearSankeyData, 'sankey-chart-annual', 'legend-income-annual', 'legend-expense-annual');
+        }
+        setTimeout(renderAllSankeys, 100);
+
+        // Gráfico anual do saldo devedor — uma linha por dívida, com "buraco" (null) nos
+        // meses antes de cada conta existir, pra Chart.js simplesmente não desenhar ali.
+        {#if data.hasDebts}
+        const debtMonths = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+        const debtSeriesColors = ['#ff6b6b', '#4c6ef5', '#be4bdb', '#f08c00'];
+        const debtsData = [
+            {#for debt in data.debts}
+            {
+                name: '{debt.name}',
+                values: [
+                    {#for v in debt.monthlyBalances}
+                    {#if v == null}null{#else}{v}{/if}{#if v_count < debt.monthlyBalances.size},{/if}
+                    {/for}
+                ]
+            }
+            {#if debt_count < data.debts.size},{/if}
+            {/for}
+        ];
+        new Chart(document.getElementById('debtsChart'), {
+            type: 'line',
+            data: {
+                labels: debtMonths,
+                datasets: debtsData.map((d, i) => ({
+                    label: d.name,
+                    data: d.values,
+                    borderColor: debtSeriesColors[i % debtSeriesColors.length],
+                    backgroundColor: debtSeriesColors[i % debtSeriesColors.length],
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    tension: 0.25,
+                    spanGaps: false,
+                }))
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: debtsData.length > 1, labels: { color: '#a0a0c0', boxWidth: 10, font: { size: 11 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ctx.dataset.label + ': €' + ctx.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                        }
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#a0a0c0', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+                    y: { ticks: { color: '#7a7a99', font: { size: 10 }, callback: v => '€' + (v/1000).toFixed(0) + 'k' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+                }
+            }
+        });
+        {/if}
+
+        // Calculadora de pagamento do cartão: alterna entre 25/50/75/100% do valor
+        // devido e mostra quanto isso representa em euros — puro cálculo no cliente,
+        // não grava nada no Firefly.
+        document.querySelectorAll('.card-payoff-calc').forEach(calc => {
+            const owed = parseFloat(calc.dataset.owed) || 0;
+            const valueEl = calc.querySelector('.card-payoff-value');
+            const buttons = calc.querySelectorAll('.card-payoff-btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    buttons.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    const pct = parseFloat(btn.dataset.pct) / 100;
+                    const amount = owed * pct;
+                    valueEl.textContent = '€' + amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                });
+            });
+        });
 
         {#if data.monthlyFinancialData != null}
         const yearlyData = [

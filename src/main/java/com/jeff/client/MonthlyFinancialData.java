@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class MonthlyFinancialData {
@@ -42,13 +43,17 @@ public class MonthlyFinancialData {
         }
 
         private static final String CASH_ACCOUNT_NAME = "Cash account";
+        /** Mesma tag de DashboardMapper.TAG_VIRTUAL — lançamentos contábeis (ex: amortização de dívida) que não são renda/gasto real. */
+        private static final String TAG_VIRTUAL = "virtual";
 
-    public void buildMonthlyFinancialData(List<FireflyClient.Transaction> transactions) {
+    public void buildMonthlyFinancialData(List<FireflyClient.Transaction> transactions, Set<String> liabilityAccountNames) {
         LocalDate today = LocalDate.now();
         for (FireflyClient.Transaction tx : transactions) {
             if (tx.date == null) continue;
 
             if (tx.amount == null) continue;
+            if (tx.tags != null && tx.tags.contains(TAG_VIRTUAL)) continue;
+            if (liabilityAccountNames != null && (liabilityAccountNames.contains(tx.sourceName) || liabilityAccountNames.contains(tx.destinationName))) continue;
 
             boolean isPast = tx.date.isBefore(today) || tx.date.isEqual(today);
 

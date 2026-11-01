@@ -78,42 +78,48 @@ public class FireflyClient {
      * tipo o cartão de crédito com pagamento em percentual).
      */
     public List<Transaction> getTransactionsByCategory(String categoryId) {
-        // limit alto porque isso busca o histórico do ano inteiro de uma vez — sem ele a
-        // API pagina em 100 por página e a chamada só pega a primeira (ver getTransactions).
-        String url = fireflyApiUrl + "/categories/" + categoryId + "/transactions?limit=300";
-
-        Response response = client.target(url)
-                .request(MediaType.APPLICATION_JSON)
-                .header("Authorization", "Bearer " + fireflyApiToken)
-                .get();
-
-        if (response.getStatus() == 200) {
-            String json = response.readEntity(String.class);
-            return parseTransactions(json);
-        }
-        return new ArrayList<>();
+        return fetchAllTransactionPages(fireflyApiUrl + "/categories/" + categoryId + "/transactions");
     }
 
     /**
-     * Busca todas as transações do mês
+     * Busca transações num período (ex: o ano inteiro de uma vez — ver
+     * DashboardService.getYearlyData, que fazia 12 chamadas separadas, uma por mês).
      */
     public List<Transaction> getTransactions(LocalDate startDate, LocalDate endDate) {
-        // limit alto pelo mesmo motivo: a API do Firefly pagina em 100 por padrão, e sem
-        // isso meses com mais de 100 lançamentos perdem silenciosamente o resto (descoberto
-        // com o salário de setembro sumindo — 09/2026 tinha 107 grupos, salário estava na
-        // página 2) — 2026-10-31.
-        String url = fireflyApiUrl + "/transactions?start=" + startDate + "&end=" + endDate + "&limit=300";
-        
-        Response response = client.target(url)
-                .request(MediaType.APPLICATION_JSON)
-                .header("Authorization", "Bearer " + fireflyApiToken)
-                .get();
+        return fetchAllTransactionPages(fireflyApiUrl + "/transactions?start=" + startDate + "&end=" + endDate);
+    }
 
-        if (response.getStatus() == 200) {
-            String json = response.readEntity(String.class);
-            return parseTransactions(json);
-        }
-        return new ArrayList<>();
+    /**
+     * Segue a paginação da API do Firefly até a última página, em vez de confiar num
+     * `limit` alto fixo — um `limit=300` já se mostrou insuficiente uma vez (o ano
+     * inteiro de withdrawals sozinho passa de 500 lançamentos), e qualquer limite fixo
+     * volta a quebrar silenciosamente assim que o volume de dados crescer de novo.
+     */
+    private List<Transaction> fetchAllTransactionPages(String baseUrl) {
+        List<Transaction> all = new ArrayList<>();
+        String sep = baseUrl.contains("?") ? "&" : "?";
+        int page = 1;
+        int totalPages = 1;
+        do {
+            String url = baseUrl + sep + "limit=300&page=" + page;
+            Response response = client.target(url)
+                    .request(MediaType.APPLICATION_JSON)
+                    .header("Authorization", "Bearer " + fireflyApiToken)
+                    .get();
+
+            if (response.getStatus() != 200) break;
+
+            try {
+                JsonNode root = objectMapper.readTree(response.readEntity(String.class));
+                all.addAll(parseTransactionsFromNode(root));
+                totalPages = root.path("meta").path("pagination").path("total_pages").asInt(1);
+            } catch (Exception e) {
+                log.error("Erro ao paginar transações de " + baseUrl, e);
+                break;
+            }
+            page++;
+        } while (page <= totalPages);
+        return all;
     }
 
     /**
@@ -134,7 +140,13 @@ public class FireflyClient {
         return new ArrayList<>();
     }
 
-    public List<Recurrence> getRecurrences(YearMonth currentSelection) {
+    /**
+     * Busca todas as ocorrências de recorrências dentro de um período — uma chamada só
+     * cobrindo o ano inteiro, em vez de uma chamada por mês (as regras de recorrência em
+     * si são poucas; o que varia por mês é só quais ocorrências caem dentro do período
+     * pedido, e isso agora é filtrado aqui, não refeito via nova chamada por mês).
+     */
+    public List<Transaction> getRecurrences(LocalDate startDate, LocalDate endDate) {
         String url = fireflyApiUrl + "/recurrences?limit=300";
 
         Response response = client.target(url)
@@ -144,7 +156,7 @@ public class FireflyClient {
 
         if (response.getStatus() == 200) {
             String json = response.readEntity(String.class);
-            return parseRecurrences(json, currentSelection);
+            return parseRecurrenceOccurrences(json, startDate, endDate);
         }
         return new ArrayList<>();
     }
@@ -269,14 +281,13 @@ public class FireflyClient {
     }
 
     /**
-     * Parser para Transactions - converte JSON em objetos Transaction
+     * Parser para Transactions - converte JSON (já parseado) em objetos Transaction
      */
-    private List<Transaction> parseTransactions(String json) {
+    private List<Transaction> parseTransactionsFromNode(JsonNode root) {
         List<Transaction> transactions = new ArrayList<>();
         try {
-            JsonNode root = objectMapper.readTree(json);
             JsonNode dataArray = root.get("data");
-            
+
             if (dataArray != null && dataArray.isArray()) {
                 for (JsonNode item : dataArray) {
                     JsonNode attributes = item.get("attributes");
@@ -346,6 +357,18 @@ public class FireflyClient {
                         if (attributes.has("virtual_balance") && !attributes.get("virtual_balance").isNull()) {
                             account.virtualBalance = new BigDecimal(attributes.get("virtual_balance").asText("0.00"));
                         }
+                        if (attributes.has("opening_balance") && !attributes.get("opening_balance").isNull()) {
+                            account.openingBalance = new BigDecimal(attributes.get("opening_balance").asText("0.00"));
+                        }
+                        if (attributes.has("opening_balance_date") && !attributes.get("opening_balance_date").isNull()) {
+                            String dateStr = attributes.get("opening_balance_date").asText();
+                            if (dateStr != null && dateStr.length() >= 10) {
+                                account.openingBalanceDate = LocalDate.parse(dateStr.substring(0, 10));
+                            }
+                        }
+                        if (attributes.has("liability_direction") && !attributes.get("liability_direction").isNull()) {
+                            account.liabilityDirection = attributes.get("liability_direction").asText();
+                        }
                         accounts.add(account);
                     }
                 }
@@ -357,78 +380,60 @@ public class FireflyClient {
         return accounts;
     }
 
-    private List<Recurrence> parseRecurrences(String json, YearMonth currentSelection) {
-        List<Recurrence> recurrences = new ArrayList<>();
+    /**
+     * Uma ocorrência (de qualquer uma das repetições da regra, não só a primeira) por
+     * transação da recorrência, pra cada data dentro de [startDate, endDate] — achata
+     * direto em Transaction porque é exatamente a forma que o resto do código já espera
+     * (igual a uma transação normal, só que prevista/agendada).
+     */
+    private List<Transaction> parseRecurrenceOccurrences(String json, LocalDate startDate, LocalDate endDate) {
+        List<Transaction> result = new ArrayList<>();
 
-        try{
-            JsonNode root =objectMapper.readTree(json);
+        try {
+            JsonNode root = objectMapper.readTree(json);
             JsonNode dataArray = root.get("data");
+            if (dataArray == null || !dataArray.isArray()) return result;
 
-            if (dataArray != null && dataArray.isArray()) {
-                for (JsonNode item : dataArray) {
-                    Recurrence recurrence =new Recurrence();
-                    recurrence.transactions = new ArrayList<>();
-                    LocalDate date = LocalDate.now();
+            for (JsonNode item : dataArray) {
+                JsonNode attributes = item.get("attributes");
+                if (attributes == null) continue;
 
-                    JsonNode attributes = item.get("attributes");
-                    if (attributes != null) {
+                String type = attributes.get("type").asText("withdrawal");
+                JsonNode transactionsArray = attributes.get("transactions");
+                if (transactionsArray == null || !transactionsArray.isArray()) continue;
 
-                        String type = attributes.get("type").asText("withdrawal");
-
-                        JsonNode repetitionsArray = attributes.get("repetitions");
-                        boolean validRecurrence = false;
-                        if (repetitionsArray != null && repetitionsArray.isArray()) {
-                            JsonNode ocurrencesArray = repetitionsArray.get(0).get("occurrences");
-                            if (ocurrencesArray != null && ocurrencesArray.isArray()) {
-                                for (JsonNode occurrence : ocurrencesArray) {
-                                    date = LocalDate.parse(occurrence.asText().substring(0, 10));
-                                     if(YearMonth.from(date).equals(currentSelection)) {
-                                         validRecurrence = true;
-                                         break;
-                                    }
-                                }
+                Set<LocalDate> occurrenceDates = new TreeSet<>();
+                JsonNode repetitionsArray = attributes.get("repetitions");
+                if (repetitionsArray != null && repetitionsArray.isArray()) {
+                    for (JsonNode repetition : repetitionsArray) {
+                        JsonNode occurrencesArray = repetition.get("occurrences");
+                        if (occurrencesArray == null || !occurrencesArray.isArray()) continue;
+                        for (JsonNode occurrence : occurrencesArray) {
+                            LocalDate date = LocalDate.parse(occurrence.asText().substring(0, 10));
+                            if (!date.isBefore(startDate) && !date.isAfter(endDate)) {
+                                occurrenceDates.add(date);
                             }
                         }
-                        if (!validRecurrence) continue;
+                    }
+                }
 
-                        JsonNode transactionsArray = attributes.get("transactions");
-                        if (transactionsArray != null && transactionsArray.isArray()) {
-                            for (JsonNode tx : transactionsArray) {
-                                String description = tx.get("description").asText("defaultValue");
-                                String category = tx.get("category_name").asText("Sem categoria");
-                                BigDecimal amount = new BigDecimal(tx.get("amount").asText("0"));
-                                List<String> tags=  objectMapper.convertValue(tx.get("tags"), new TypeReference<List<String>>() {});
-                                Transaction transaction = new Transaction(
-                                        item.get("id").asText(),
-                                        description,
-                                        amount,
-                                        date,
-                                        type,
-                                        "ok",
-                                        category,
-                                        tags
-                                );
-
-                                recurrence.transactions.add(transaction);
-                            }
-                        }
-
-                        recurrences.add(recurrence);
+                for (LocalDate date : occurrenceDates) {
+                    for (JsonNode tx : transactionsArray) {
+                        String description = tx.get("description").asText("defaultValue");
+                        String category = tx.get("category_name").asText("Sem categoria");
+                        BigDecimal amount = new BigDecimal(tx.get("amount").asText("0"));
+                        List<String> tags = objectMapper.convertValue(tx.get("tags"), new TypeReference<List<String>>() {});
+                        result.add(new Transaction(item.get("id").asText(), description, amount, date, type, "ok", category, tags));
                     }
                 }
             }
         } catch (Exception e) {
-            System.err.println("Erro ao parsear recurrences: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Erro ao parsear recurrences", e);
         }
-        return recurrences;
+        return result;
     }
 
     // DTOs simples
-    public static class Recurrence {
-        public String id;
-        public List<Transaction> transactions;
-    }
     public static class Account {
         public String id;
         public String name;
@@ -436,6 +441,16 @@ public class FireflyClient {
         public BigDecimal balance;
         /** Pra contas de cartão de crédito: usamos esse campo como "limite" (truque, já que o Firefly não tem campo nativo de limite). */
         public BigDecimal virtualBalance;
+        /** Pra passivos (empréstimos): ponto de partida do saldo devedor, usado pra reconstruir a evolução mês a mês. */
+        public BigDecimal openingBalance;
+        public LocalDate openingBalanceDate;
+        /**
+         * "debit" (padrão, ex: empréstimo) = balance É o quanto devemos. "credit" = o
+         * oposto — usado deliberadamente num cartão de crédito modelado como passivo
+         * onde balance representa crédito DISPONÍVEL (sobe ao pagar, desce ao comprar),
+         * não o quanto se deve.
+         */
+        public String liabilityDirection;
 
         public Account() {}
         public Account(String id, String name, String type, BigDecimal balance) {
