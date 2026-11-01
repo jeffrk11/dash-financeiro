@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 
 import com.jeff.client.FireflyClient;
 import com.jeff.dto.AccountDTO;
+import com.jeff.dto.AccountDeltaDTO;
 import com.jeff.dto.BudgetDTO;
 import com.jeff.dto.CategoryDTO;
 import com.jeff.dto.DashboardDTO;
@@ -41,7 +42,8 @@ public class DashboardMapper {
             List<FireflyClient.Account> accounts,
             List<FireflyClient.Account> liabilities,
             List<FireflyClient.Transaction> fixasHistory,
-            List<FireflyClient.Transaction> incomeHistory) {
+            List<FireflyClient.Transaction> incomeHistory,
+            List<FireflyClient.Transaction> investmentHistory) {
         today = LocalDate.now();
 
         LocalDate startOfMonth = referenceDate.withDayOfMonth(1);
@@ -54,6 +56,9 @@ public class DashboardMapper {
         List<DebtDTO> debtDTOs = buildDebts(liabilities);
         List<PredictedExpenseDTO> predictedDTOs = buildPredictedRecurring(fixasHistory, YearMonth.from(startOfMonth));
         List<FutureIncomeDTO> futureIncomeDTOs = buildFutureIncome(transactions, incomeHistory, YearMonth.from(startOfMonth));
+        List<FutureIncomeDTO> investmentBreakdownDTOs = buildGroupedByDescription(investmentHistory);
+        List<AccountDeltaDTO> accountDeltaDTOs = buildAccountDeltas(transactions);
+        applyYearlyPredictions(monthlyFinancialData, fixasHistory, incomeHistory);
 
         DashboardDTO dto = new DashboardDTO();
         dto.summary = summary;
@@ -65,8 +70,59 @@ public class DashboardMapper {
         dto.debts = debtDTOs;
         dto.predictedRecurring = predictedDTOs;
         dto.futureIncome = futureIncomeDTOs;
+        dto.investmentBreakdown = investmentBreakdownDTOs;
+        dto.accountDeltas = accountDeltaDTOs;
 
         return dto;
+    }
+
+    /**
+     * Variação líquida de saldo por conta real no mês — tooltip do "Saldo Projetado do
+     * Mês". "Cash account" é a contraparte virtual de toda entrada/saída real (ver
+     * convenção do funnel-worker), por isso é excluída: sozinha ela sempre fecha em
+     * -superávit/+déficit do mês, redundante com o próprio número do card. Transferências
+     * entre contas do usuário entram aqui normalmente (débito na origem, crédito no
+     * destino) porque, diferente do cálculo de entradas/saídas, aqui o que importa é onde
+     * o dinheiro fisicamente está no fim do mês, não só o que é "renda" ou "gasto".
+     */
+    private static final String CASH_ACCOUNT_NAME = "Cash account";
+
+    private List<AccountDeltaDTO> buildAccountDeltas(List<FireflyClient.Transaction> transactions) {
+        if (transactions == null) return new ArrayList<>();
+
+        Map<String, BigDecimal> net = new LinkedHashMap<>();
+        for (FireflyClient.Transaction tx : transactions) {
+            if (tx.amount == null || tx.sourceName == null || tx.destinationName == null) continue;
+            net.merge(tx.sourceName, tx.amount.negate(), BigDecimal::add);
+            net.merge(tx.destinationName, tx.amount, BigDecimal::add);
+        }
+        net.remove(CASH_ACCOUNT_NAME);
+
+        return net.entrySet().stream()
+                .filter(e -> e.getValue().compareTo(BigDecimal.ZERO) != 0)
+                .map(e -> new AccountDeltaDTO(e.getKey(), e.getValue()))
+                .sorted((a, b) -> b.delta.compareTo(a.delta))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Soma um histórico de transações por descrição, maior valor primeiro — usada pro
+     * tooltip do total "Investido" na Visão Anual (histórico da categoria "investimento",
+     * ano inteiro), pra ver quais investimentos específicos compõem aquele valor.
+     */
+    private List<FutureIncomeDTO> buildGroupedByDescription(List<FireflyClient.Transaction> history) {
+        if (history == null) return new ArrayList<>();
+
+        Map<String, BigDecimal> byDescription = new LinkedHashMap<>();
+        for (FireflyClient.Transaction tx : history) {
+            if (tx.description == null || tx.amount == null) continue;
+            byDescription.merge(tx.description, tx.amount.abs(), BigDecimal::add);
+        }
+
+        return byDescription.entrySet().stream()
+                .map(e -> new FutureIncomeDTO(e.getKey(), e.getValue(), false))
+                .sorted((a, b) -> b.amount.compareTo(a.amount))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -115,6 +171,101 @@ public class DashboardMapper {
      * Olhando só o mês anterior, ela só é prevista (incorretamente) no mês seguinte ao
      * em que realmente ocorreu — bem mais raro.
      */
+    /** Quantos meses seguidos sem lançamento real uma conta ainda pode ser "repetida" na Visão Anual antes de parar de ser prevista. */
+    private static final int MAX_MESES_SEM_REPETIR = 2;
+
+    /**
+     * Tag explícita pra tirar uma conta de todo o mecanismo de previsão (card mensal e
+     * Visão Anual), sem depender do age/cap decidir por heurística. Pensada pra contas
+     * `fixas` com cadência não-mensal (ex: seguro do carro, semestral) — o age/cap
+     * continua funcionando normalmente pra tudo que não tiver essa tag.
+     */
+    private static final String TAG_EXCLUIR_PREVISAO = "nao-mensal";
+
+    private boolean excluidaDaPrevisao(FireflyClient.Transaction tx) {
+        return tx.tags != null && tx.tags.contains(TAG_EXCLUIR_PREVISAO);
+    }
+
+    /**
+     * Previsão da Visão Anual: diferente de buildPredictedAmountsByDescription (que só
+     * olha o mês anterior real, pensado pro card mensal), aqui a previsão ENCADEIA —
+     * cada mês guarda o último valor real conhecido de cada conta/descrição, e se o mês
+     * seguinte não tiver lançamento real, repete esse valor, e assim por diante. Sem
+     * isso, um mês "duas vezes no futuro" (ex: dezembro, quando novembro em si também só
+     * tem previsão) não tem de onde puxar e fica subestimado — pedido explícito do
+     * usuário pra só repetir nesse caso (2026-10-31).
+     *
+     * MAS repetir sem limite reintroduz o problema que a regra do card mensal evita: uma
+     * conta semestral (ex: seguro do carro, só jan/jul) ou uma que simplesmente parou de
+     * acontecer (ex: cancelada) ficaria "prevista" indefinidamente. Por isso cada conta
+     * só é repetida por até MAX_MESES_SEM_REPETIR meses seguidos sem aparecer de verdade
+     * — dá exatamente pra cobrir o encadeamento até dezembro (que puxa de novembro, que
+     * por sua vez puxou de outubro), mas não mais que isso. Descoberto com o usuário
+     * perguntando, no último dia de outubro, por que contas sumidas há meses (algumas há
+     * 8+) ainda apareciam como "a pagar esse mês" (2026-10-31).
+     */
+    private void applyYearlyPredictions(List<MonthlyFinancialData> monthlyFinancialData,
+                                         List<FireflyClient.Transaction> fixasHistory,
+                                         List<FireflyClient.Transaction> incomeHistory) {
+        if (monthlyFinancialData == null) return;
+
+        Map<String, BigDecimal> lastKnownFixas = new HashMap<>();
+        Map<String, Integer> monthsSinceRealFixas = new HashMap<>();
+        Map<String, BigDecimal> lastKnownIncome = new HashMap<>();
+        Map<String, Integer> monthsSinceRealIncome = new HashMap<>();
+
+        for (MonthlyFinancialData month : monthlyFinancialData) {
+            YearMonth ym = month.getYearMonth();
+            updateLastKnownAmounts(lastKnownFixas, monthsSinceRealFixas, fixasHistory, ym, "withdrawal");
+            updateLastKnownAmounts(lastKnownIncome, monthsSinceRealIncome, incomeHistory, ym, "deposit");
+
+            if (ym.isBefore(YearMonth.from(today))) {
+                month.setPredictedFixas(BigDecimal.ZERO);
+                month.setPredictedIncome(BigDecimal.ZERO);
+                continue;
+            }
+
+            month.setPredictedFixas(sumStillFresh(lastKnownFixas, monthsSinceRealFixas));
+            month.setPredictedIncome(sumStillFresh(lastKnownIncome, monthsSinceRealIncome));
+        }
+    }
+
+    /**
+     * Soma as transações reais de um mês específico por descrição, grava o valor mais
+     * recente em `lastKnown`, e envelhece o contador de "meses sem repetir": zera pra
+     * quem teve lançamento real este mês, incrementa pra quem já estava sendo repetido.
+     */
+    private void updateLastKnownAmounts(Map<String, BigDecimal> lastKnown,
+                                         Map<String, Integer> monthsSinceReal,
+                                         List<FireflyClient.Transaction> history,
+                                         YearMonth month, String txType) {
+        Map<String, BigDecimal> thisMonth = new HashMap<>();
+        if (history != null) {
+            for (FireflyClient.Transaction tx : history) {
+                if (tx.date == null || tx.description == null || !txType.equals(tx.type)) continue;
+                if (excluidaDaPrevisao(tx)) continue;
+                if (!YearMonth.from(tx.date).equals(month)) continue;
+                thisMonth.merge(normalizeRecurringDescription(tx.description), tx.amount.abs(), BigDecimal::add);
+            }
+        }
+        for (String desc : lastKnown.keySet()) {
+            monthsSinceReal.merge(desc, 1, Integer::sum);
+        }
+        lastKnown.putAll(thisMonth);
+        for (String desc : thisMonth.keySet()) {
+            monthsSinceReal.put(desc, 0);
+        }
+    }
+
+    private BigDecimal sumStillFresh(Map<String, BigDecimal> amounts, Map<String, Integer> monthsSinceReal) {
+        BigDecimal total = BigDecimal.ZERO;
+        for (Map.Entry<String, BigDecimal> entry : amounts.entrySet()) {
+            int age = monthsSinceReal.getOrDefault(entry.getKey(), 0);
+            if (age >= 1 && age <= MAX_MESES_SEM_REPETIR) total = total.add(entry.getValue());
+        }
+        return total;
+    }
+
     private List<PredictedExpenseDTO> buildPredictedRecurring(List<FireflyClient.Transaction> fixasHistory, YearMonth viewedMonth) {
         List<PredictedExpenseDTO> predicted = new ArrayList<>();
         for (Map.Entry<String, BigDecimal> entry : buildPredictedAmountsByDescription(fixasHistory, viewedMonth, "withdrawal").entrySet()) {
@@ -143,6 +294,7 @@ public class DashboardMapper {
 
         for (FireflyClient.Transaction tx : history) {
             if (tx.date == null || tx.description == null || !txType.equals(tx.type)) continue;
+            if (excluidaDaPrevisao(tx)) continue;
             String desc = normalizeRecurringDescription(tx.description);
             YearMonth txMonth = YearMonth.from(tx.date);
             if (txMonth.equals(viewedMonth)) {
@@ -173,8 +325,26 @@ public class DashboardMapper {
     private String normalizeRecurringDescription(String description) {
         if (description == null) return null;
         String normalized = description.trim().toLowerCase(new Locale("pt", "BR"));
+        // Remove acentos (prestação/prestacao, manutenção/manutencao, etc.) — a cadeia de
+        // previsão da Visão Anual é muito mais sensível a isso que a regra do card mensal:
+        // uma grafia que só varia de acento vira uma conta "fantasma" separada que nunca
+        // mais bate com a real, e fica sendo prevista em todo mês seguinte sem fim
+        // (descoberto 2026-10-31 — "prestacao casa" vs "prestação casa").
+        normalized = java.text.Normalizer.normalize(normalized, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
         if ("internet casa".equals(normalized)) return "internet";
         if ("seguro vida - financiamento casa".equals(normalized)) return "seguro vida";
+        // Confirmado com o usuário (2026-10-31): mesma taxa CGD escrita 3 formas
+        // diferentes ao longo do ano.
+        if ("manutencao conta".equals(normalized)) return "manutencao conta cgd";
+        if ("pagamento cgd".equals(normalized)) return "manutencao conta cgd";
+        // Typo de um mês só (abril) — devia ser só "seguro casa".
+        if ("seguro casa marco".equals(normalized)) return "seguro casa";
+        // Único lançamento (jun) com esse nome, mesmo valor de "prestação carro" do mês —
+        // erro de digitação daquele mês específico.
+        if ("loan".equals(normalized)) return "prestacao carro";
+        // Só apareceu em janeiro, nunca mais — mesma conta que virou "debito direto".
+        if ("debito direto energia".equals(normalized)) return "debito direto";
         return normalized;
     }
 

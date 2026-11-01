@@ -17,6 +17,8 @@ public class DashboardDTO {
     public List<DebtDTO> debts;
     public List<PredictedExpenseDTO> predictedRecurring;
     public List<FutureIncomeDTO> futureIncome;
+    public List<FutureIncomeDTO> investmentBreakdown;
+    public List<AccountDeltaDTO> accountDeltas;
     public SankeyDTO sankey;
     public List<MonthlyFinancialData> monthlyFinancialData;
     public BigDecimal yearProjectedBalance;
@@ -99,6 +101,30 @@ public class DashboardDTO {
 
     public boolean getHasFutureIncome() {
         return futureIncome != null && !futureIncome.isEmpty();
+    }
+
+    public List<FutureIncomeDTO> getInvestmentBreakdown() {
+        return investmentBreakdown;
+    }
+
+    public void setInvestmentBreakdown(List<FutureIncomeDTO> investmentBreakdown) {
+        this.investmentBreakdown = investmentBreakdown;
+    }
+
+    public List<AccountDeltaDTO> getAccountDeltas() {
+        return accountDeltas;
+    }
+
+    public void setAccountDeltas(List<AccountDeltaDTO> accountDeltas) {
+        this.accountDeltas = accountDeltas;
+    }
+
+    public boolean getHasAccountDeltas() {
+        return accountDeltas != null && !accountDeltas.isEmpty();
+    }
+
+    public boolean getHasInvestmentBreakdown() {
+        return investmentBreakdown != null && !investmentBreakdown.isEmpty();
     }
 
     public BigDecimal getTotalDebt() {
@@ -320,15 +346,35 @@ public class DashboardDTO {
     }
 
     public BigDecimal calculateYearBalance() {
-        BigDecimal deposit = BigDecimal.ZERO;
-        BigDecimal withdraw = BigDecimal.ZERO;
+        return getYearTotalReceived().subtract(getYearTotalSpent());
+    }
 
-        for (MonthlyFinancialData month : monthlyFinancialData){
-            deposit  = deposit.add(month.getReceivedNow());//.add(month.getReceivedFuture());
-            withdraw = withdraw.add(month.getSpentNow());//.add(month.getSpentFuture());
+    /** Soma de tudo recebido de verdade no ano (mesma base do calculateYearBalance, sem futuro/previsão). */
+    public BigDecimal getYearTotalReceived() {
+        BigDecimal total = BigDecimal.ZERO;
+        if (monthlyFinancialData == null) return total;
+        for (MonthlyFinancialData month : monthlyFinancialData) {
+            total = total.add(month.getReceivedNow());
         }
+        return total;
+    }
 
-        return deposit.subtract(withdraw);
+    public String getYearTotalReceivedFormatted() {
+        return "€" + currencyFormatter.format(getYearTotalReceived());
+    }
+
+    /** Soma de tudo gasto de verdade no ano (mesma base do calculateYearBalance, sem futuro/previsão). */
+    public BigDecimal getYearTotalSpent() {
+        BigDecimal total = BigDecimal.ZERO;
+        if (monthlyFinancialData == null) return total;
+        for (MonthlyFinancialData month : monthlyFinancialData) {
+            total = total.add(month.getSpentNow());
+        }
+        return total;
+    }
+
+    public String getYearTotalSpentFormatted() {
+        return "€" + currencyFormatter.format(getYearTotalSpent());
     }
 
     public BigDecimal getYearSavedReserve() {

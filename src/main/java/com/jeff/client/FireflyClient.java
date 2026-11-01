@@ -292,6 +292,8 @@ public class FireflyClient {
                                 String dateStr = tx.get("date").asText();
                                 String category = tx.get("category_name").asText("Sem categoria");
                                 List<String> tags=  objectMapper.convertValue(tx.get("tags"), new TypeReference<List<String>>() {});
+                                String sourceName = tx.get("source_name").asText(null);
+                                String destinationName = tx.get("destination_name").asText(null);
 
                                 // Parsear valor
                                 BigDecimal amount = BigDecimal.ZERO;
@@ -299,13 +301,13 @@ public class FireflyClient {
                                     String amountStr = tx.get("amount").asText("0.00");
                                     amount = new BigDecimal(amountStr);
                                 }
-                                
+
                                 // Parsear data - formato ISO 8601: "2026-03-15T14:50:59+00:00"
                                 LocalDate date = LocalDate.parse(dateStr.substring(0, 10)); // YYYY-MM-DD
-                                
+
                                 String status = "ok"; // Firefly não tem campo status, assumir ok como padrão
-                                
-                                transactions.add(new Transaction(id, description, amount, date, typeStr, status, category, tags));
+
+                                transactions.add(new Transaction(id, description, amount, date, typeStr, status, category, tags, sourceName, destinationName));
                             }
                         }
                     }
@@ -453,13 +455,19 @@ public class FireflyClient {
         public String status;
         public String category; // categoria da transação
         public List<String> tags;
+        public String sourceName;
+        public String destinationName;
 
         public Transaction() {}
         public Transaction(String id, String description, BigDecimal amount, LocalDate date, String type, String status) {
             this(id, description, amount, date, type, status, "Sem categoria", new ArrayList<>());
         }
-        
+
         public Transaction(String id, String description, BigDecimal amount, LocalDate date, String type, String status, String category, List<String> tags) {
+            this(id, description, amount, date, type, status, category, tags, null, null);
+        }
+
+        public Transaction(String id, String description, BigDecimal amount, LocalDate date, String type, String status, String category, List<String> tags, String sourceName, String destinationName) {
             this.id = id;
             this.description = description;
             this.amount = amount;
@@ -468,6 +476,8 @@ public class FireflyClient {
             this.status = status;
             this.category = category;
             this.tags = tags;
+            this.sourceName = sourceName;
+            this.destinationName = destinationName;
         }
     }
 
